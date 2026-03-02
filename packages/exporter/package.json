@@ -1,0 +1,13 @@
+{
+  "name": "@bux/exporter",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@bux/core-model": "workspace:*",
+    "@bux/section-kit": "workspace:*",
+    "ajv": "^8.17.1"
+  }
+}

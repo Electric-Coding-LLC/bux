@@ -1,0 +1,85 @@
+{
+  "layout": {
+    "breakpoints": [
+      {
+        "breakpoint": "xs",
+        "columns": 4,
+        "containerToken": "xs",
+        "gutterToken": 4
+      },
+      {
+        "breakpoint": "sm",
+        "columns": 8,
+        "containerToken": "sm",
+        "gutterToken": 4
+      },
+      {
+        "breakpoint": "md",
+        "columns": 12,
+        "containerToken": "md",
+        "gutterToken": 6
+      },
+      {
+        "breakpoint": "lg",
+        "columns": 12,
+        "containerToken": "lg",
+        "gutterToken": 6
+      },
+      {
+        "breakpoint": "xl",
+        "columns": 12,
+        "containerToken": "xl",
+        "gutterToken": 8
+      }
+    ],
+    "defaultDensity": "comfortable"
+  },
+  "schemaVersion": "1.0.0",
+  "sectionRules": [
+    {
+      "allowedVariants": [
+        "split",
+        "centered",
+        "stacked"
+      ],
+      "maxItems": 1,
+      "sectionType": "hero"
+    },
+    {
+      "allowedVariants": [
+        "cards",
+        "minimal"
+      ],
+      "maxItems": 12,
+      "sectionType": "featureGrid"
+    },
+    {
+      "allowedVariants": [
+        "stacked",
+        "inline"
+      ],
+      "sectionType": "form"
+    },
+    {
+      "allowedVariants": [
+        "simple",
+        "detailed"
+      ],
+      "sectionType": "list"
+    },
+    {
+      "allowedVariants": [
+        "comfortable",
+        "compact"
+      ],
+      "sectionType": "table"
+    },
+    {
+      "allowedVariants": [
+        "grouped",
+        "flat"
+      ],
+      "sectionType": "settings"
+    }
+  ]
+}

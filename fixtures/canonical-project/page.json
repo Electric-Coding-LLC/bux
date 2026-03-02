@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "sections": [
+    {
+      "id": "sec-hero-001",
+      "props": {
+        "align": "start",
+        "ctaCount": 2,
+        "hasMedia": true
+      },
+      "slots": {
+        "body": "Tune tokens and section constraints, then export machine-friendly artifacts.",
+        "eyebrow": "Ship faster with systemized UI",
+        "heading": "A deterministic UI system playground",
+        "primaryCta": "Start from baseline",
+        "secondaryCta": "Review constraints"
+      },
+      "type": "hero",
+      "variant": "split"
+    },
+    {
+      "id": "sec-feature-grid-001",
+      "props": {
+        "columns": 3,
+        "showIcons": true
+      },
+      "slots": {
+        "heading": "Core foundations",
+        "items": [
+          {
+            "body": "Role-based typography mapped from shared tokens.",
+            "title": "Typography scale"
+          },
+          {
+            "body": "Density modes validated against global spacing scales.",
+            "title": "Spacing system"
+          },
+          {
+            "body": "Breakpoint-aware columns and container widths.",
+            "title": "Layout constraints"
+          }
+        ]
+      },
+      "type": "featureGrid",
+      "variant": "cards"
+    }
+  ],
+  "title": "System Playground Baseline"
+}
