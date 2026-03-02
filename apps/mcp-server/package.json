@@ -1,0 +1,15 @@
+{
+  "name": "@bux/mcp-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
+  "dependencies": {
+    "@bux/adapters-next": "workspace:*",
+    "@bux/adapters-webstir": "workspace:*",
+    "@bux/core-engine": "workspace:*",
+    "@bux/core-model": "workspace:*",
+    "@bux/exporter": "workspace:*"
+  }
+}

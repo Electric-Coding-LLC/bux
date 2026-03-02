@@ -1,0 +1,135 @@
+import { canonicalProjectFixture } from "@bux/core-model";
+import { describe, expect, it } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { executeToolRequest, type ToolResponse } from "./tools";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function expectOk(response: ToolResponse): Record<string, unknown> {
+  expect(response.ok).toBe(true);
+  if (!response.ok) {
+    throw new Error(`Expected success, received ${response.error.code}`);
+  }
+
+  if (!isRecord(response.result)) {
+    throw new Error("Expected object result.");
+  }
+
+  return response.result;
+}
+
+describe("mcp tools", () => {
+  it("creates and opens a project from disk", async () => {
+    const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-create-"));
+
+    try {
+      const created = await executeToolRequest({
+        id: 1,
+        tool: "project.create",
+        input: { rootPath: outputDirectory }
+      });
+      const createResult = expectOk(created);
+      expect(Array.isArray(createResult.savedFiles)).toBe(true);
+      expect((createResult.savedFiles as unknown[]).length).toBe(4);
+
+      const opened = await executeToolRequest({
+        id: 2,
+        tool: "project.open",
+        input: { rootPath: outputDirectory }
+      });
+      const openResult = expectOk(opened);
+      const project = openResult.project as typeof canonicalProjectFixture;
+      expect(project.page.sections.length).toBeGreaterThan(0);
+      expect(project.summary.schemaVersion).toBe("1.0.0");
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("updates tokens and summary timestamp through tokens.set", async () => {
+    const response = await executeToolRequest({
+      id: 3,
+      tool: "tokens.set",
+      input: {
+        project: canonicalProjectFixture,
+        path: ["radii", "md"],
+        value: 12,
+        generatedAt: "2026-03-02T12:00:00.000Z"
+      }
+    });
+    const result = expectOk(response);
+    const project = result.project as typeof canonicalProjectFixture;
+
+    expect(project.tokens.radii.md).toBe(12);
+    expect(project.summary.generatedAt).toBe("2026-03-02T12:00:00.000Z");
+  });
+
+  it("reports validation issues through validate.run", async () => {
+    const invalidProject = structuredClone(canonicalProjectFixture);
+    invalidProject.page.sections[0]!.props.ctaCount = 999;
+
+    const response = await executeToolRequest({
+      id: 4,
+      tool: "validate.run",
+      input: { project: invalidProject }
+    });
+    const result = expectOk(response);
+
+    expect(result.ok).toBe(false);
+    expect(Array.isArray(result.issues)).toBe(true);
+    expect((result.issues as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("exports bundle files in-memory and on disk", async () => {
+    const inMemory = await executeToolRequest({
+      id: 5,
+      tool: "export.bundle",
+      input: { project: canonicalProjectFixture }
+    });
+    const inMemoryResult = expectOk(inMemory);
+    expect(isRecord(inMemoryResult.files)).toBe(true);
+    expect(typeof (inMemoryResult.files as Record<string, unknown>)["tokens.json"]).toBe(
+      "string"
+    );
+
+    const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-export-"));
+    try {
+      const onDisk = await executeToolRequest({
+        id: 6,
+        tool: "export.bundle",
+        input: { project: canonicalProjectFixture, outputDirectory }
+      });
+      const diskResult = expectOk(onDisk);
+
+      expect(diskResult.writtenTo).toBe(outputDirectory);
+      expect(await Bun.file(join(outputDirectory, "tokens.json")).exists()).toBe(true);
+      expect(await Bun.file(join(outputDirectory, "summary.json")).exists()).toBe(true);
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("returns adapter output for nextjs target", async () => {
+    const response = await executeToolRequest({
+      id: 7,
+      tool: "adapter.emit",
+      input: {
+        project: canonicalProjectFixture,
+        target: "nextjs",
+        generatedAt: "2026-03-02T12:30:00.000Z"
+      }
+    });
+    const result = expectOk(response);
+
+    expect(Array.isArray(result.validationIssues)).toBe(true);
+    expect(isRecord(result.layoutSpec)).toBe(true);
+    expect((result.layoutSpec as Record<string, unknown>).target).toBe("nextjs");
+    expect((result.layoutSpec as Record<string, unknown>).generatedAt).toBe(
+      "2026-03-02T12:30:00.000Z"
+    );
+  });
+});

@@ -17,9 +17,9 @@ Execution tracker for the first implementation cycle.
 ## Later
 - [x] Add full v1 section set (`form`, `list`, `table`, `settings`).
 - [x] Add stress modes in preview and export metadata.
-- [ ] Add optional snapshot export with fixed viewport/seed.
+- [x] Add optional snapshot export with fixed viewport/seed.
 - [x] Define adapter contract and stub Next.js/Webstir adapters.
-- [ ] Add MCP server wrapper over core-engine/exporter.
+- [x] Add MCP server wrapper over core-engine/exporter.
 
 ## Completed (Post-Next)
 - [x] Add section-level semantic validation rules in `@bux/section-kit`.

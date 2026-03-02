@@ -22,8 +22,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Typecheck and tests
-        run: bun run check
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+        env:
+          LANG: en_US.UTF-8
 
-      - name: Determinism fixture diff gate
-        run: bun run check:determinism
+      - name: Full CI checks
+        run: bun run check:ci
+        env:
+          LANG: en_US.UTF-8
