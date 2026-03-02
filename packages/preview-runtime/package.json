@@ -1,0 +1,12 @@
+{
+  "name": "@bux/preview-runtime",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@bux/core-model": "workspace:*",
+    "react": "^19.1.1"
+  }
+}

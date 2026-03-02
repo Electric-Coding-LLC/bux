@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-02-26T00:00:00.000Z",
+  "layout": {
+    "sectionCount": 2,
+    "sectionOrder": [
+      "hero",
+      "featureGrid"
+    ]
+  },
+  "notes": [
+    "Portable core model avoids raw CSS in section props.",
+    "Preview targets authentic DOM layout while exports remain framework-agnostic."
+  ],
+  "schemaVersion": "1.0.0",
+  "stress": {
+    "copyMode": "short",
+    "densityMode": "comfortable",
+    "stateMode": "default"
+  },
+  "system": {
+    "colorRoleCount": 6,
+    "defaultDensity": "comfortable",
+    "spacingScaleSteps": 8,
+    "typographyScaleSteps": 7
+  },
+  "targetProfile": "portable-core"
+}

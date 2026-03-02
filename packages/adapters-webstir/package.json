@@ -1,0 +1,13 @@
+{
+  "name": "@bux/adapters-webstir",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@bux/adapter-contract": "workspace:*",
+    "@bux/core-model": "workspace:*",
+    "@bux/section-kit": "workspace:*"
+  }
+}
