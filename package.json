@@ -9,7 +9,9 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
-    "check": "bun run typecheck && bun run test"
+    "check": "bun run typecheck && bun run test",
+    "check:determinism": "bun run scripts/check-determinism.ts",
+    "check:ci": "bun run check && bun run check:determinism"
   },
   "devDependencies": {
     "@types/react": "^19.1.12",
