@@ -25,3 +25,8 @@ Execution tracker for the first implementation cycle.
 - [x] Add section-level semantic validation rules in `@bux/section-kit`.
 - [x] Surface section validation issues in playground sidebar.
 - [x] Enforce section semantic validation at exporter boundary.
+
+## Hardening (Current Cycle)
+- [x] Add CI gate for deterministic fixture export diff checks.
+- [x] Write MCP wrapper contract doc for request/response and error semantics.
+- [x] Lock snapshot baseline rules (viewport/seed/environment/wait strategy).

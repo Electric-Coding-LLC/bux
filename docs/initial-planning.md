@@ -227,11 +227,14 @@ Potential tool surface:
 
 ## Open Decisions to Resolve Early
 - Exact token depth (especially color role granularity) for v1
-- Snapshot generation strategy and baseline environment
 - Summary schema shape (`summary.json` fields)
 - Initial presets included in v1
 - When to introduce MCP transport (v1 vs post-v1)
 - Scope of v1 "portable core" and first non-web adapter priority
+
+## Resolved Decisions (2026-03-02)
+- Snapshot baseline policy documented in `docs/snapshot-baseline.md`
+- MCP tool contract documented in `docs/mcp-contract.md`
 
 ## Immediate Next Steps
 1. Approve this planning baseline.
