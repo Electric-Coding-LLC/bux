@@ -22,6 +22,19 @@ function expectOk(response: ToolResponse): Record<string, unknown> {
   return response.result;
 }
 
+function expectError(response: ToolResponse): {
+  code: string;
+  message: string;
+  details?: unknown;
+} {
+  expect(response.ok).toBe(false);
+  if (response.ok) {
+    throw new Error("Expected error response.");
+  }
+
+  return response.error;
+}
+
 describe("mcp tools", () => {
   it("creates and opens a project from disk", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-create-"));
@@ -131,5 +144,72 @@ describe("mcp tools", () => {
     expect((result.layoutSpec as Record<string, unknown>).generatedAt).toBe(
       "2026-03-02T12:30:00.000Z"
     );
+  });
+
+  it("returns INVALID_INPUT for unsupported stress value", async () => {
+    const response = await executeToolRequest({
+      id: 8,
+      tool: "stress.set",
+      input: {
+        project: canonicalProjectFixture,
+        mode: "copyMode",
+        value: "compact"
+      }
+    });
+    const error = expectError(response);
+
+    expect(error.code).toBe("INVALID_INPUT");
+    expect(error.message).toContain("short or long");
+  });
+
+  it("returns INVALID_INPUT for empty token path", async () => {
+    const response = await executeToolRequest({
+      id: 9,
+      tool: "tokens.set",
+      input: {
+        project: canonicalProjectFixture,
+        path: [],
+        value: 16
+      }
+    });
+    const error = expectError(response);
+
+    expect(error.code).toBe("INVALID_INPUT");
+    expect(error.message).toContain("non-empty array");
+  });
+
+  it("returns INVALID_INPUT for malformed section add payload", async () => {
+    const response = await executeToolRequest({
+      id: 10,
+      tool: "page.sections.add",
+      input: {
+        project: canonicalProjectFixture,
+        section: {
+          type: "hero",
+          props: {},
+          slots: {}
+        }
+      }
+    });
+    const error = expectError(response);
+
+    expect(error.code).toBe("INVALID_INPUT");
+    expect(error.message).toContain("input.section.variant");
+  });
+
+  it("returns INVALID_INPUT when reordering unknown section id", async () => {
+    const response = await executeToolRequest({
+      id: 11,
+      tool: "page.sections.reorder",
+      input: {
+        project: canonicalProjectFixture,
+        sectionId: "sec-missing-999",
+        toIndex: 0
+      }
+    });
+    const error = expectError(response);
+
+    expect(error.code).toBe("INVALID_INPUT");
+    expect(error.message).toContain("was not found");
   });
 });
