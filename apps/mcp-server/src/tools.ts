@@ -174,6 +174,30 @@ function optionalGeneratedAt(input: Record<string, unknown>): string | undefined
   return optionalString(input.generatedAt, "input.generatedAt");
 }
 
+function hasNodeErrorCode(error: unknown): error is Error & { code: string } {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    typeof (error as { code?: unknown }).code === "string"
+  );
+}
+
+function remapWritableIOError(
+  error: unknown,
+  message: string,
+  context: Record<string, unknown>
+): never {
+  if (hasNodeErrorCode(error)) {
+    throw new McpToolError("IO_ERROR", message, {
+      ...context,
+      code: error.code,
+      cause: error.message
+    });
+  }
+
+  throw error;
+}
+
 function assertSectionType(value: unknown, path: string): SectionType {
   if (
     value !== "hero" &&
@@ -375,10 +399,14 @@ async function handleProjectSave(input: unknown): Promise<unknown> {
   const rootPath = assertString(payload.rootPath, "input.rootPath");
   const project = assertProject(payload.project);
 
-  const result = await writeExportBundle(project, rootPath);
-  return {
-    savedFiles: Object.keys(result.files).map((fileName) => join(rootPath, fileName))
-  };
+  try {
+    const result = await writeExportBundle(project, rootPath);
+    return {
+      savedFiles: Object.keys(result.files).map((fileName) => join(rootPath, fileName))
+    };
+  } catch (error: unknown) {
+    remapWritableIOError(error, "Unable to save project files.", { rootPath });
+  }
 }
 
 async function handleProjectCreate(input: unknown): Promise<unknown> {
@@ -389,12 +417,16 @@ async function handleProjectCreate(input: unknown): Promise<unknown> {
   await ensureCanCreateProject(rootPath, overwrite);
 
   const project = structuredClone(canonicalProjectFixture);
-  const result = await writeExportBundle(project, rootPath);
+  try {
+    const result = await writeExportBundle(project, rootPath);
 
-  return {
-    project,
-    savedFiles: Object.keys(result.files).map((fileName) => join(rootPath, fileName))
-  };
+    return {
+      project,
+      savedFiles: Object.keys(result.files).map((fileName) => join(rootPath, fileName))
+    };
+  } catch (error: unknown) {
+    remapWritableIOError(error, "Unable to create project files.", { rootPath });
+  }
 }
 
 async function handleTokensSet(input: unknown): Promise<unknown> {
@@ -440,17 +472,28 @@ async function handlePageSectionsUpdate(input: unknown): Promise<unknown> {
   const generatedAt = optionalGeneratedAt(payload);
 
   const changes: UpdateSectionAction["changes"] = {};
+  let hasRecognizedChange = false;
 
   if (changesPayload.variant !== undefined) {
     changes.variant = assertString(changesPayload.variant, "input.changes.variant");
+    hasRecognizedChange = true;
   }
 
   if (changesPayload.props !== undefined) {
     changes.props = assertJSONObject(changesPayload.props, "input.changes.props");
+    hasRecognizedChange = true;
   }
 
   if (changesPayload.slots !== undefined) {
     changes.slots = assertJSONObject(changesPayload.slots, "input.changes.slots");
+    hasRecognizedChange = true;
+  }
+
+  if (!hasRecognizedChange) {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      "input.changes must include at least one of variant, props, or slots."
+    );
   }
 
   const nextProject = applyEngineAction(
@@ -558,22 +601,28 @@ async function handleExportBundle(input: unknown): Promise<unknown> {
     };
   }
 
-  const result = await writeExportBundle(project, outputDirectory, {
-    snapshot
-  });
+  try {
+    const result = await writeExportBundle(project, outputDirectory, {
+      snapshot
+    });
 
-  return {
-    files: result.files,
-    writtenTo: outputDirectory,
-    snapshot:
-      result.snapshot === undefined
-        ? undefined
-        : {
-            filePath: result.snapshot.filePath,
-            metadataPath: result.snapshot.metadataPath,
-            metadata: result.snapshot.metadata
-          }
-  };
+    return {
+      files: result.files,
+      writtenTo: outputDirectory,
+      snapshot:
+        result.snapshot === undefined
+          ? undefined
+          : {
+              filePath: result.snapshot.filePath,
+              metadataPath: result.snapshot.metadataPath,
+              metadata: result.snapshot.metadata
+            }
+    };
+  } catch (error: unknown) {
+    remapWritableIOError(error, "Unable to write export bundle.", {
+      outputDirectory
+    });
+  }
 }
 
 async function handleAdapterEmit(input: unknown): Promise<unknown> {
