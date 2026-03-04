@@ -1,4 +1,4 @@
-# MCP Wrapper Contract (Draft v1)
+# MCP Wrapper Contract (v1)
 
 This document defines the contract for `apps/mcp-server` before implementation.
 
@@ -138,14 +138,17 @@ Behavior:
 Input:
 - `project: Project`
 - `outputDirectory?: string`
+- `snapshot?: boolean` (default `false`)
 
 Output:
 - `files: { "tokens.json": string; "page.json": string; "constraints.json": string; "summary.json": string }`
 - `writtenTo?: string`
+- `snapshot?: { filePath: string; metadataPath: string; metadata: object }`
 
 Behavior:
 - Uses `createExportBundleFiles` for in-memory exports.
 - If `outputDirectory` is provided, also calls `writeExportBundle`.
+- If `snapshot` is `true`, `outputDirectory` is required and snapshot artifacts are written (`snapshot.png`, `snapshot.meta.json`).
 
 ### `adapter.emit`
 Input:

@@ -42,6 +42,7 @@ This document locks the deterministic baseline for future `snapshot.png` export 
 - Functional gate (required): snapshot command exits successfully and writes `snapshot.png`.
 - Determinism gate (when enabled): compare SHA-256 hash across two consecutive captures in a clean temp directory.
 
-## Deferred Decisions
-- Whether `snapshot.png` is required in default export vs opt-in flag.
-- Whether cross-machine hash equality is required or only CI-baseline equality.
+## Resolved Decisions (2026-03-02)
+- `snapshot.png` stays opt-in in `writeExportBundle` and MCP `export.bundle` calls.
+- Snapshot metadata is persisted to `snapshot.meta.json` and includes the capture seed/profile.
+- Determinism enforcement compares repeated captures in the same CI environment (CI-baseline equality), not cross-machine hash parity.

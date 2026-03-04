@@ -235,6 +235,8 @@ Potential tool surface:
 ## Resolved Decisions (2026-03-02)
 - Snapshot baseline policy documented in `docs/snapshot-baseline.md`
 - MCP tool contract documented in `docs/mcp-contract.md`
+- Optional snapshot export implemented in `@bux/exporter` (`snapshot.png` + `snapshot.meta.json`)
+- MCP wrapper implemented in `apps/mcp-server` over core engine/exporter/adapter packages
 
 ## Immediate Next Steps
 1. Approve this planning baseline.
