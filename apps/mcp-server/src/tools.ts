@@ -3,6 +3,8 @@ import { createWebstirAdapter } from "@bux/adapters-webstir";
 import {
   applyAction,
   type AddSectionAction,
+  type EngineAction,
+  type SetStressModeAction,
   type UpdateSectionAction
 } from "@bux/core-engine";
 import {
@@ -11,6 +13,7 @@ import {
   type JSONObject,
   type JSONValue,
   type PlaygroundProject,
+  type SectionType,
   type StressCopyMode,
   type StressStateMode
 } from "@bux/core-model";
@@ -98,27 +101,35 @@ function optionalBoolean(value: unknown, path: string): boolean | undefined {
   return value;
 }
 
-function optionalNumber(value: unknown, path: string): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    throw new McpToolError("INVALID_INPUT", `${path} must be a number.`);
+function assertStringArray(value: unknown, path: string): string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)
+  ) {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be a non-empty array of non-empty strings.`
+    );
   }
 
   return value;
 }
 
-function assertStringArray(value: unknown, path: string): string[] {
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
-    throw new McpToolError(
-      "INVALID_INPUT",
-      `${path} must be an array of strings.`
-    );
+function assertInteger(value: unknown, path: string): number {
+  if (typeof value !== "number" || Number.isNaN(value) || !Number.isInteger(value)) {
+    throw new McpToolError("INVALID_INPUT", `${path} must be an integer.`);
   }
 
   return value;
+}
+
+function optionalInteger(value: unknown, path: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return assertInteger(value, path);
 }
 
 function isJSONValue(value: unknown): value is JSONValue {
@@ -161,6 +172,94 @@ function assertJSONObject(value: unknown, path: string): JSONObject {
 
 function optionalGeneratedAt(input: Record<string, unknown>): string | undefined {
   return optionalString(input.generatedAt, "input.generatedAt");
+}
+
+function assertSectionType(value: unknown, path: string): SectionType {
+  if (
+    value !== "hero" &&
+    value !== "featureGrid" &&
+    value !== "form" &&
+    value !== "list" &&
+    value !== "table" &&
+    value !== "settings"
+  ) {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be hero, featureGrid, form, list, table, or settings.`
+    );
+  }
+
+  return value;
+}
+
+function assertAddSectionPayload(value: unknown): AddSectionAction["section"] {
+  const section = assertRecord(value, "input.section");
+
+  const id = optionalString(section.id, "input.section.id");
+  const type = assertSectionType(section.type, "input.section.type");
+  const variant = assertString(section.variant, "input.section.variant");
+  const props = assertJSONObject(section.props, "input.section.props");
+  const slots = assertJSONObject(section.slots, "input.section.slots");
+
+  return {
+    type,
+    variant,
+    props,
+    slots,
+    ...(id === undefined ? {} : { id })
+  };
+}
+
+function assertStressMode(value: unknown, path: string): SetStressModeAction["mode"] {
+  if (value !== "copyMode" && value !== "stateMode" && value !== "densityMode") {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be copyMode, stateMode, or densityMode.`
+    );
+  }
+
+  return value;
+}
+
+function assertStressValue(
+  mode: SetStressModeAction["mode"],
+  value: unknown,
+  path: string
+): StressCopyMode | StressStateMode | DensityMode {
+  const rawValue = assertString(value, path);
+
+  if (mode === "copyMode") {
+    if (rawValue !== "short" && rawValue !== "long") {
+      throw new McpToolError("INVALID_INPUT", `${path} must be short or long for copyMode.`);
+    }
+
+    return rawValue;
+  }
+
+  if (mode === "stateMode") {
+    if (
+      rawValue !== "default" &&
+      rawValue !== "empty" &&
+      rawValue !== "loading" &&
+      rawValue !== "error"
+    ) {
+      throw new McpToolError(
+        "INVALID_INPUT",
+        `${path} must be default, empty, loading, or error for stateMode.`
+      );
+    }
+
+    return rawValue;
+  }
+
+  if (rawValue !== "comfortable" && rawValue !== "compact") {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be comfortable or compact for densityMode.`
+    );
+  }
+
+  return rawValue;
 }
 
 function assertProject(value: unknown): PlaygroundProject {
@@ -213,6 +312,26 @@ function ensureProjectValid(project: PlaygroundProject): void {
 
 function toEngineOptions(generatedAt: string | undefined): { generatedAt?: string } {
   return generatedAt === undefined ? {} : { generatedAt };
+}
+
+function applyEngineAction(
+  project: PlaygroundProject,
+  action: EngineAction,
+  generatedAt: string | undefined
+): PlaygroundProject {
+  try {
+    return applyAction(project, action, toEngineOptions(generatedAt));
+  } catch (error: unknown) {
+    if (error instanceof McpToolError) {
+      throw error;
+    }
+
+    if (error instanceof Error) {
+      throw new McpToolError("INVALID_INPUT", error.message);
+    }
+
+    throw error;
+  }
 }
 
 async function handleProjectOpen(input: unknown): Promise<unknown> {
@@ -284,14 +403,14 @@ async function handleTokensSet(input: unknown): Promise<unknown> {
   const path = assertStringArray(payload.path, "input.path");
   const generatedAt = optionalGeneratedAt(payload);
 
-  const nextProject = applyAction(
+  const nextProject = applyEngineAction(
     project,
     {
       type: "setTokenValue",
       path,
       value: assertJSONValue(payload.value, "input.value")
     },
-    toEngineOptions(generatedAt)
+    generatedAt
   );
 
   return { project: nextProject };
@@ -300,16 +419,16 @@ async function handleTokensSet(input: unknown): Promise<unknown> {
 async function handlePageSectionsAdd(input: unknown): Promise<unknown> {
   const payload = assertRecord(input, "input");
   const project = assertProject(payload.project);
-  const section = assertRecord(payload.section, "input.section");
+  const section = assertAddSectionPayload(payload.section);
   const generatedAt = optionalGeneratedAt(payload);
-  const index = optionalNumber(payload.index, "input.index");
+  const index = optionalInteger(payload.index, "input.index");
 
   const action: AddSectionAction = {
     type: "addSection",
-    section: section as AddSectionAction["section"],
+    section,
     ...(index === undefined ? {} : { index })
   };
-  const nextProject = applyAction(project, action, toEngineOptions(generatedAt));
+  const nextProject = applyEngineAction(project, action, generatedAt);
   return { project: nextProject };
 }
 
@@ -334,14 +453,14 @@ async function handlePageSectionsUpdate(input: unknown): Promise<unknown> {
     changes.slots = assertJSONObject(changesPayload.slots, "input.changes.slots");
   }
 
-  const nextProject = applyAction(
+  const nextProject = applyEngineAction(
     project,
     {
       type: "updateSection",
       sectionId,
       changes
     },
-    toEngineOptions(generatedAt)
+    generatedAt
   );
 
   return { project: nextProject };
@@ -351,21 +470,21 @@ async function handlePageSectionsReorder(input: unknown): Promise<unknown> {
   const payload = assertRecord(input, "input");
   const project = assertProject(payload.project);
   const sectionId = assertString(payload.sectionId, "input.sectionId");
-  const toIndex = optionalNumber(payload.toIndex, "input.toIndex");
+  const toIndex = optionalInteger(payload.toIndex, "input.toIndex");
   const generatedAt = optionalGeneratedAt(payload);
 
   if (toIndex === undefined) {
-    throw new McpToolError("INVALID_INPUT", "input.toIndex must be a number.");
+    throw new McpToolError("INVALID_INPUT", "input.toIndex must be an integer.");
   }
 
-  const nextProject = applyAction(
+  const nextProject = applyEngineAction(
     project,
     {
       type: "reorderSection",
       sectionId,
       toIndex
     },
-    toEngineOptions(generatedAt)
+    generatedAt
   );
 
   return { project: nextProject };
@@ -377,13 +496,13 @@ async function handlePageSectionsRemove(input: unknown): Promise<unknown> {
   const sectionId = assertString(payload.sectionId, "input.sectionId");
   const generatedAt = optionalGeneratedAt(payload);
 
-  const nextProject = applyAction(
+  const nextProject = applyEngineAction(
     project,
     {
       type: "removeSection",
       sectionId
     },
-    toEngineOptions(generatedAt)
+    generatedAt
   );
 
   return { project: nextProject };
@@ -392,27 +511,18 @@ async function handlePageSectionsRemove(input: unknown): Promise<unknown> {
 async function handleStressSet(input: unknown): Promise<unknown> {
   const payload = assertRecord(input, "input");
   const project = assertProject(payload.project);
-  const mode = assertString(payload.mode, "input.mode");
-  const value = assertString(payload.value, "input.value");
+  const mode = assertStressMode(payload.mode, "input.mode");
+  const value = assertStressValue(mode, payload.value, "input.value");
   const generatedAt = optionalGeneratedAt(payload);
 
-  if (mode !== "copyMode" && mode !== "stateMode" && mode !== "densityMode") {
-    throw new McpToolError(
-      "INVALID_INPUT",
-      "input.mode must be copyMode, stateMode, or densityMode."
-    );
-  }
-
-  const typedValue = value as StressCopyMode | StressStateMode | DensityMode;
-
-  const nextProject = applyAction(
+  const nextProject = applyEngineAction(
     project,
     {
       type: "setStressMode",
       mode,
-      value: typedValue
+      value
     },
-    toEngineOptions(generatedAt)
+    generatedAt
   );
 
   return { project: nextProject };
