@@ -1,4 +1,7 @@
-import type { PlaygroundProject } from "@bux/core-model";
+import {
+  migrateProjectFilesToCurrentSchema,
+  type PlaygroundProject
+} from "@bux/core-model";
 import { join } from "node:path";
 
 export const requiredProjectFiles = [
@@ -23,11 +26,10 @@ export async function loadProjectFromDirectory(
     )
   );
 
-  return {
+  return migrateProjectFilesToCurrentSchema({
     tokens,
     page,
     constraints,
-    summary,
-    stress: structuredClone(summary.stress)
-  } as PlaygroundProject;
+    summary
+  });
 }

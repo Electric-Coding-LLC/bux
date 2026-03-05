@@ -1,4 +1,4 @@
-import { canonicalProjectFixture } from "@bux/core-model";
+import { CURRENT_SCHEMA_VERSION, canonicalProjectFixture } from "@bux/core-model";
 import { describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -35,6 +35,32 @@ function expectError(response: ToolResponse): {
   return response.error;
 }
 
+async function writeProjectFiles(
+  rootPath: string,
+  documents: {
+    tokens: unknown;
+    page: unknown;
+    constraints: unknown;
+    summary: unknown;
+  }
+): Promise<void> {
+  await Promise.all([
+    Bun.write(
+      join(rootPath, "tokens.json"),
+      `${JSON.stringify(documents.tokens, null, 2)}\n`
+    ),
+    Bun.write(join(rootPath, "page.json"), `${JSON.stringify(documents.page, null, 2)}\n`),
+    Bun.write(
+      join(rootPath, "constraints.json"),
+      `${JSON.stringify(documents.constraints, null, 2)}\n`
+    ),
+    Bun.write(
+      join(rootPath, "summary.json"),
+      `${JSON.stringify(documents.summary, null, 2)}\n`
+    )
+  ]);
+}
+
 describe("mcp tools", () => {
   it("creates and opens a project from disk", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-create-"));
@@ -58,6 +84,113 @@ describe("mcp tools", () => {
       const project = openResult.project as typeof canonicalProjectFixture;
       expect(project.page.sections.length).toBeGreaterThan(0);
       expect(project.summary.schemaVersion).toBe("1.0.0");
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("opens legacy project files without schemaVersion and summary stress", async () => {
+    const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-open-legacy-"));
+    const {
+      schemaVersion: _tokensSchemaVersion,
+      ...legacyTokens
+    } = structuredClone(canonicalProjectFixture.tokens);
+    const {
+      schemaVersion: _pageSchemaVersion,
+      ...legacyPage
+    } = structuredClone(canonicalProjectFixture.page);
+    const {
+      schemaVersion: _constraintsSchemaVersion,
+      ...legacyConstraints
+    } = structuredClone(canonicalProjectFixture.constraints);
+    const {
+      schemaVersion: _summarySchemaVersion,
+      stress: _summaryStress,
+      ...legacySummary
+    } = structuredClone(canonicalProjectFixture.summary);
+
+    try {
+      await writeProjectFiles(outputDirectory, {
+        tokens: legacyTokens,
+        page: legacyPage,
+        constraints: legacyConstraints,
+        summary: legacySummary
+      });
+
+      const opened = await executeToolRequest({
+        id: 20,
+        tool: "project.open",
+        input: { rootPath: outputDirectory }
+      });
+      const result = expectOk(opened);
+      const project = result.project as typeof canonicalProjectFixture;
+
+      expect(project.tokens.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+      expect(project.page.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+      expect(project.constraints.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+      expect(project.summary.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+      expect(project.summary.stress).toEqual(canonicalProjectFixture.stress);
+      expect(project.stress).toEqual(canonicalProjectFixture.stress);
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("returns INVALID_INPUT when opening unsupported schema version", async () => {
+    const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-open-version-"));
+    const unsupportedSummary = {
+      ...structuredClone(canonicalProjectFixture.summary),
+      schemaVersion: "2.0.0"
+    };
+
+    try {
+      await writeProjectFiles(outputDirectory, {
+        tokens: canonicalProjectFixture.tokens,
+        page: canonicalProjectFixture.page,
+        constraints: canonicalProjectFixture.constraints,
+        summary: unsupportedSummary
+      });
+
+      const opened = await executeToolRequest({
+        id: 21,
+        tool: "project.open",
+        input: { rootPath: outputDirectory }
+      });
+      const error = expectError(opened);
+
+      expect(error.code).toBe("INVALID_INPUT");
+      expect(error.message).toContain("unsupported");
+      expect(error.message).toContain("summary.json");
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("returns INVALID_INPUT when summary stress is not an object", async () => {
+    const outputDirectory = await mkdtemp(join(tmpdir(), "bux-mcp-open-stress-shape-"));
+    const invalidSummary = {
+      ...structuredClone(canonicalProjectFixture.summary),
+      stress: null
+    };
+
+    try {
+      await writeProjectFiles(outputDirectory, {
+        tokens: canonicalProjectFixture.tokens,
+        page: canonicalProjectFixture.page,
+        constraints: canonicalProjectFixture.constraints,
+        summary: invalidSummary
+      });
+
+      const opened = await executeToolRequest({
+        id: 22,
+        tool: "project.open",
+        input: { rootPath: outputDirectory }
+      });
+      const error = expectError(opened);
+
+      expect(error.code).toBe("INVALID_INPUT");
+      expect(error.message).toContain("stress");
+      expect(error.message).toContain("object");
     } finally {
       await rm(outputDirectory, { recursive: true, force: true });
     }

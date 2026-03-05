@@ -9,6 +9,7 @@ import {
 } from "@bux/core-engine";
 import {
   canonicalProjectFixture,
+  ProjectMigrationError,
   type DensityMode,
   type JSONObject,
   type JSONValue,
@@ -383,6 +384,12 @@ async function handleProjectOpen(input: unknown): Promise<unknown> {
 
     if (error instanceof SyntaxError) {
       throw new McpToolError("INVALID_INPUT", "Project file contains invalid JSON.", {
+        rootPath
+      });
+    }
+
+    if (error instanceof ProjectMigrationError) {
+      throw new McpToolError("INVALID_INPUT", error.message, {
         rootPath
       });
     }

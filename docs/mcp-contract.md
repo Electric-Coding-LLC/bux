@@ -29,6 +29,8 @@ Output:
 
 Behavior:
 - Loads `tokens.json`, `page.json`, `constraints.json`, `summary.json` from `rootPath`.
+- Normalizes legacy files that omit `schemaVersion` (and missing `summary.stress`) to current v1 shape in-memory before validation.
+- Rejects explicit unsupported schema versions.
 - Fails if any required file is missing or invalid.
 
 ### `project.save`
