@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun run ./scripts/dev-all.ts",
+    "ui": "bun run --cwd ./apps/playground dev",
+    "mcp": "bun run --cwd ./apps/mcp-server start",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
     "check": "bun run typecheck && bun run test",
