@@ -41,8 +41,8 @@ body {
 }
 
 .panel-block {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  background: #f8fafc;
+  border-radius: 12px;
   padding: 0.9rem;
 }
 
@@ -86,8 +86,9 @@ body {
 }
 
 .section-item {
-  border: 1px solid #e5e7eb;
+  border: 0;
   border-radius: 8px;
+  background: #ffffff;
   padding: 0.5rem;
   display: flex;
   flex-direction: column;
@@ -201,10 +202,9 @@ body {
 
 .preview-root {
   width: 100%;
-  background: var(--token-surface-muted);
-  border-radius: var(--token-radius-md);
-  border: 1px solid var(--token-border-subtle);
-  padding: var(--token-space-4);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   font-family: var(--token-font-sans), sans-serif;
 }
 
@@ -219,6 +219,7 @@ body {
   border: 1px solid var(--token-border-subtle);
   border-radius: var(--token-radius-md);
   padding: var(--token-space-4);
+  box-shadow: none;
 }
 
 .preview-section h1,
@@ -309,9 +310,9 @@ body {
 }
 
 .preview-card {
-  border: 1px solid var(--token-border-subtle);
+  border: 0;
   border-radius: var(--token-radius-md);
-  background: #ffffff;
+  background: var(--token-surface-muted);
   padding: var(--token-space-3);
 }
 
@@ -378,8 +379,9 @@ body {
 }
 
 .preview-settings-group {
-  border: 1px solid var(--token-border-subtle);
+  border: 0;
   border-radius: var(--token-radius-md);
+  background: var(--token-surface-muted);
   padding: var(--token-space-3);
 }
 

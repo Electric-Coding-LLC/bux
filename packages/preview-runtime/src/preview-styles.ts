@@ -1,10 +1,9 @@
 export const previewStyles = `
 .preview-root {
   width: 100%;
-  background: var(--token-surface-muted);
-  border-radius: var(--token-radius-md);
-  border: 1px solid var(--token-border-subtle);
-  padding: var(--token-space-4);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   font-family: var(--token-font-sans), sans-serif;
 }
 
@@ -19,6 +18,7 @@ export const previewStyles = `
   border: 1px solid var(--token-border-subtle);
   border-radius: var(--token-radius-md);
   padding: var(--token-space-4);
+  box-shadow: none;
 }
 
 .preview-section h1,
@@ -109,9 +109,9 @@ export const previewStyles = `
 }
 
 .preview-card {
-  border: 1px solid var(--token-border-subtle);
+  border: 0;
   border-radius: var(--token-radius-md);
-  background: #ffffff;
+  background: var(--token-surface-muted);
   padding: var(--token-space-3);
 }
 
@@ -178,8 +178,9 @@ export const previewStyles = `
 }
 
 .preview-settings-group {
-  border: 1px solid var(--token-border-subtle);
+  border: 0;
   border-radius: var(--token-radius-md);
+  background: var(--token-surface-muted);
   padding: var(--token-space-3);
 }
 
