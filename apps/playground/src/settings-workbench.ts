@@ -1,25 +1,18 @@
+import { type PlaygroundProject, type SettingsScreenBrief } from "@bux/core-model";
 import {
-  createSettingsPageFromBlueprint,
-  defaultSettingsBlueprintId
-} from "@bux/blueprint-library";
-import { applyAction } from "@bux/core-engine";
-import {
-  canonicalProjectFixture,
-  canonicalSettingsScreenBriefFixture,
-  type PlaygroundProject,
-  type SettingsScreenBrief
-} from "@bux/core-model";
+  applyBlueprintToProject,
+  createInitialBrief,
+  createStarterProject,
+  deriveBriefFromProject as deriveScreenBriefFromProject,
+  syncProjectTitle as syncScreenProjectTitle
+} from "./screen-workbench";
 
 export function createInitialSettingsBrief(): SettingsScreenBrief {
-  return structuredClone(canonicalSettingsScreenBriefFixture);
+  return createInitialBrief("settings");
 }
 
 export function createSettingsStarterProject(): PlaygroundProject {
-  return applySettingsBlueprintToProject(
-    structuredClone(canonicalProjectFixture),
-    createInitialSettingsBrief(),
-    defaultSettingsBlueprintId
-  );
+  return createStarterProject("settings");
 }
 
 export function applySettingsBlueprintToProject(
@@ -27,53 +20,19 @@ export function applySettingsBlueprintToProject(
   brief: SettingsScreenBrief,
   blueprintId: string
 ): PlaygroundProject {
-  let nextProject = structuredClone(project);
-  const page = createSettingsPageFromBlueprint(blueprintId, brief);
-
-  for (const sectionId of nextProject.page.sections.map((section) => section.id)) {
-    nextProject = applyAction(nextProject, {
-      type: "removeSection",
-      sectionId
-    });
-  }
-
-  for (const section of page.sections) {
-    nextProject = applyAction(nextProject, {
-      type: "addSection",
-      section
-    });
-  }
-
-  nextProject.page.title = page.title;
-
-  return nextProject;
+  return applyBlueprintToProject(project, brief, blueprintId);
 }
 
 export function deriveBriefFromProject(
   project: PlaygroundProject,
   sourceBrief: SettingsScreenBrief
 ): SettingsScreenBrief {
-  const nextTitle = project.page.title.trim();
-
-  return {
-    ...sourceBrief,
-    title: nextTitle.length > 0 ? nextTitle : sourceBrief.title
-  };
+  return deriveScreenBriefFromProject(project, sourceBrief);
 }
 
 export function syncProjectTitle(
   project: PlaygroundProject,
   title: string
 ): PlaygroundProject {
-  if (project.page.title === title) {
-    return project;
-  }
-
-  return {
-    ...project,
-    page: {
-      ...project.page,
-      title
-    }
-  };
+  return syncScreenProjectTitle(project, title);
 }

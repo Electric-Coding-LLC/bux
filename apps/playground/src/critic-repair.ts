@@ -1,4 +1,4 @@
-import { evaluateSettingsScreen } from "@bux/critic-rules";
+import { evaluateScreen } from "@bux/critic-rules";
 import { applyActions, type EngineAction } from "@bux/core-engine";
 import type {
   CriticFinding,
@@ -7,7 +7,7 @@ import type {
   CriticSuggestedFix,
   CriticVerdict,
   PlaygroundProject,
-  SettingsScreenBrief
+  ScreenBrief
 } from "@bux/core-model";
 import {
   canonicalJSONStringify,
@@ -114,7 +114,7 @@ function countResolvedFindings(
 
 export function prepareFindingRepairState(
   project: PlaygroundProject,
-  brief: SettingsScreenBrief,
+  brief: ScreenBrief,
   report: CriticReport,
   finding: CriticFinding
 ): FindingRepairState {
@@ -156,7 +156,7 @@ export function prepareFindingRepairState(
       };
     }
 
-    const nextReport = evaluateSettingsScreen(nextProject, brief);
+    const nextReport = evaluateScreen(nextProject, brief);
     const nextExportReadiness = evaluateExportReadiness(
       nextReport,
       collectValidationIssues(nextProject)
@@ -198,7 +198,7 @@ export function prepareFindingRepairState(
 
 export function prepareFindingRepairStates(
   project: PlaygroundProject,
-  brief: SettingsScreenBrief,
+  brief: ScreenBrief,
   report: CriticReport
 ): FindingRepairState[] {
   return report.findings.map((finding) =>

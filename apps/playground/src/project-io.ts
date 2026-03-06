@@ -3,7 +3,10 @@ import {
   canonicalProjectFixture,
   canonicalSettingsScreenBriefFixture,
   migrateProjectFilesToCurrentSchema,
+  type MarketingLandingScreenBrief,
+  type OnboardingScreenBrief,
   type PlaygroundProject,
+  type ScreenBrief,
   type SettingsScreenBrief
 } from "@bux/core-model";
 import {
@@ -23,13 +26,13 @@ type ProjectFileName = (typeof requiredProjectFiles)[number];
 
 export interface LoadedProjectState {
   activeBlueprintId: string | null;
-  brief: SettingsScreenBrief | null;
+  brief: ScreenBrief | null;
   project: PlaygroundProject;
 }
 
 interface WorkbenchDocument {
   activeBlueprintId: string | null;
-  brief: SettingsScreenBrief;
+  brief: ScreenBrief;
 }
 
 type DirectoryPickerOptions = {
@@ -75,6 +78,18 @@ function isSettingsDensity(value: unknown): value is SettingsScreenBrief["densit
   return value === "compact" || value === "comfortable" || value === "calm";
 }
 
+function isOnboardingDensity(
+  value: unknown
+): value is OnboardingScreenBrief["density"] {
+  return value === "guided" || value === "focused" || value === "compact";
+}
+
+function isMarketingLandingDensity(
+  value: unknown
+): value is MarketingLandingScreenBrief["density"] {
+  return value === "editorial" || value === "focused" || value === "launch";
+}
+
 function parseActiveBlueprintId(value: unknown): string | null {
   if (value === undefined || value === null) {
     return null;
@@ -92,31 +107,77 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
     throw new Error("brief.json must be a JSON object.");
   }
 
-  if (value.screenType !== "settings") {
-    throw new Error('brief.json screenType must be "settings".');
+  const screenType = value.screenType;
+
+  if (
+    screenType !== "settings" &&
+    screenType !== "onboarding" &&
+    screenType !== "marketingLanding"
+  ) {
+    throw new Error(
+      'brief.json screenType must be "settings", "onboarding", or "marketingLanding".'
+    );
   }
 
   if (typeof value.title !== "string" || value.title.trim().length === 0) {
     throw new Error("brief.json title must be a non-empty string.");
   }
 
-  if (!isSettingsDensity(value.density)) {
-    throw new Error('brief.json density must be "comfortable", "compact", or "calm".');
+  if (screenType === "settings") {
+    if (!isSettingsDensity(value.density)) {
+      throw new Error('brief.json density must be "comfortable", "compact", or "calm" for settings.');
+    }
+
+    return {
+      activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+      brief: {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        screenType,
+        title: value.title,
+        density: value.density as SettingsScreenBrief["density"]
+      }
+    };
+  }
+
+  if (!isOnboardingDensity(value.density)) {
+    if (screenType === "onboarding") {
+      throw new Error(
+        'brief.json density must be "guided", "focused", or "compact" for onboarding.'
+      );
+    }
+  }
+
+  if (screenType === "onboarding") {
+    return {
+      activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+      brief: {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        screenType,
+        title: value.title,
+        density: value.density as OnboardingScreenBrief["density"]
+      }
+    };
+  }
+
+  if (!isMarketingLandingDensity(value.density)) {
+    throw new Error(
+      'brief.json density must be "editorial", "focused", or "launch" for marketingLanding.'
+    );
   }
 
   return {
     activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
     brief: {
       schemaVersion: CURRENT_SCHEMA_VERSION,
-      screenType: "settings",
+      screenType,
       title: value.title,
-      density: value.density
+      density: value.density as MarketingLandingScreenBrief["density"]
     }
   };
 }
 
 export function serializeWorkbenchDocument(
-  brief: SettingsScreenBrief,
+  brief: ScreenBrief,
   activeBlueprintId: string | null
 ): string {
   return canonicalJSONStringify({
@@ -138,7 +199,7 @@ export function createNewProject(): PlaygroundProject {
 
 export function serializeProjectFingerprint(
   project: PlaygroundProject,
-  brief: SettingsScreenBrief = canonicalSettingsScreenBriefFixture,
+  brief: ScreenBrief = canonicalSettingsScreenBriefFixture,
   activeBlueprintId: string | null = null
 ): string {
   return [
@@ -189,7 +250,7 @@ export async function loadProjectFromDirectoryHandle(
   const [tokens, page, constraints, summary] = await Promise.all(
     requiredProjectFiles.map((fileName) => readJSONFile(directoryHandle, fileName))
   );
-  let brief: SettingsScreenBrief | null = null;
+  let brief: ScreenBrief | null = null;
   let activeBlueprintId: string | null = null;
 
   try {
@@ -219,7 +280,7 @@ export async function loadProjectFromDirectoryHandle(
 export async function saveProjectToDirectoryHandle(
   directoryHandle: FileSystemDirectoryHandle,
   project: PlaygroundProject,
-  brief: SettingsScreenBrief,
+  brief: ScreenBrief,
   activeBlueprintId: string | null
 ): Promise<string[]> {
   const files = createExportBundleFiles(project);

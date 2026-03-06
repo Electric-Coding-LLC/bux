@@ -1,14 +1,19 @@
 import {
-  defaultSettingsBlueprintId,
-  settingsBlueprints
+  getBlueprintsForScreenType,
+  getDefaultBlueprintId
 } from "@bux/blueprint-library";
 import { applyAction } from "@bux/core-engine";
-import { evaluateSettingsScreen } from "@bux/critic-rules";
+import { evaluateScreen } from "@bux/critic-rules";
 import {
   type BreakpointName,
   type DensityMode,
+  type MarketingLandingDensity,
+  type OnboardingScreenDensity,
   type PlaygroundProject,
+  type ScreenBrief,
+  type ScreenType,
   type SectionType,
+  type SettingsScreenDensity,
   type StressCopyMode,
   type StressStateMode
 } from "@bux/core-model";
@@ -17,7 +22,10 @@ import { PlaygroundPreview, resolvePreviewLayout } from "@bux/preview-runtime";
 import { createSectionDraft } from "@bux/section-kit";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { BlueprintLibraryPanel } from "./blueprint-library-panel";
-import { generateSettingsCandidates, type GeneratedSettingsCandidate } from "./candidate-generation";
+import {
+  generateCandidates,
+  type GeneratedCandidate
+} from "./candidate-generation";
 import { CandidateListPanel } from "./candidate-list-panel";
 import {
   summarizeBlockedCandidateGap,
@@ -45,16 +53,16 @@ import {
 import { PreviewControls } from "./preview-controls";
 import { ProjectToolbar, type ProjectNotice } from "./project-toolbar";
 import { prioritizeBlockedCandidateRepairs } from "./repair-targeting";
-import { SectionEditor, type SectionChanges } from "./section-editor";
-import { SectionRulesEditor } from "./section-rules-editor";
-import { SettingsBriefEditor } from "./settings-brief-editor";
+import { ScreenBriefEditor } from "./screen-brief-editor";
 import {
-  applySettingsBlueprintToProject,
-  createInitialSettingsBrief,
-  createSettingsStarterProject,
+  applyBlueprintToProject,
+  createInitialBrief,
+  createStarterProject,
   deriveBriefFromProject,
   syncProjectTitle
-} from "./settings-workbench";
+} from "./screen-workbench";
+import { SectionEditor, type SectionChanges } from "./section-editor";
+import { SectionRulesEditor } from "./section-rules-editor";
 import { ValidationPanel } from "./validation-panel";
 
 type NumericTokenField = {
@@ -137,11 +145,11 @@ function readNumberAtPath(project: PlaygroundProject, path: string[]): number {
 
 export function App() {
   const [project, setProject] = useState<PlaygroundProject>(() =>
-    createSettingsStarterProject()
+    createStarterProject("settings")
   );
-  const [brief, setBrief] = useState(() => createInitialSettingsBrief());
+  const [brief, setBrief] = useState<ScreenBrief>(() => createInitialBrief("settings"));
   const [activeBlueprintId, setActiveBlueprintId] = useState<string | null>(
-    defaultSettingsBlueprintId
+    getDefaultBlueprintId("settings")
   );
   const [newSectionType, setNewSectionType] = useState<SectionType>("settings");
   const [activeBreakpoint, setActiveBreakpoint] = useState<BreakpointName>("md");
@@ -149,9 +157,9 @@ export function App() {
     useState<FileSystemDirectoryHandle | null>(null);
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     serializeProjectFingerprint(
-      createSettingsStarterProject(),
-      createInitialSettingsBrief(),
-      defaultSettingsBlueprintId
+      createStarterProject("settings"),
+      createInitialBrief("settings"),
+      getDefaultBlueprintId("settings")
     )
   );
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
@@ -163,12 +171,16 @@ export function App() {
 
   const validationIssues = useMemo(() => collectValidationIssues(project), [project]);
   const criticReport = useMemo(
-    () => evaluateSettingsScreen(project, brief),
+    () => evaluateScreen(project, brief),
     [brief, project]
   );
   const generatedCandidates = useMemo(
-    () => generateSettingsCandidates(project, brief),
+    () => generateCandidates(project, brief),
     [brief, project]
+  );
+  const availableBlueprints = useMemo(
+    () => getBlueprintsForScreenType(brief.screenType),
+    [brief.screenType]
   );
   const exportReadiness = useMemo(
     () => evaluateExportReadiness(criticReport, validationIssues),
@@ -238,16 +250,33 @@ export function App() {
     });
   }
 
-  function setBriefDensity(value: typeof brief.density) {
+  function setBriefDensity(
+    value: OnboardingScreenDensity | SettingsScreenDensity | MarketingLandingDensity
+  ) {
     setRepairHistory([]);
-    setBrief((current) => ({
-      ...current,
-      density: value
-    }));
+    setBrief((current) =>
+      current.screenType === "settings"
+        ? {
+            ...current,
+            density: value as SettingsScreenDensity
+          }
+        : current.screenType === "onboarding"
+          ? {
+              ...current,
+              density: value as OnboardingScreenDensity
+            }
+          : {
+              ...current,
+              density: value as MarketingLandingDensity
+            }
+    );
   }
 
   function applySelectedBlueprint() {
-    const blueprint = settingsBlueprints.find((entry) => entry.id === activeBlueprintId);
+    const blueprint =
+      activeBlueprintId === null
+        ? null
+        : availableBlueprints.find((entry) => entry.id === activeBlueprintId) ?? null;
 
     if (!blueprint) {
       return;
@@ -257,9 +286,7 @@ export function App() {
 
     startTransition(() => {
       setRepairHistory([]);
-      setProject((current) =>
-        applySettingsBlueprintToProject(current, brief, selectedBlueprintId)
-      );
+      setProject((current) => applyBlueprintToProject(current, brief, selectedBlueprintId));
       setActiveBlueprintId(blueprint.id);
       setNotice({
         tone: "success",
@@ -268,7 +295,7 @@ export function App() {
     });
   }
 
-  function loadGeneratedCandidate(candidate: GeneratedSettingsCandidate) {
+  function loadGeneratedCandidate(candidate: GeneratedCandidate) {
     const rank = generatedCandidates.findIndex(
       (entry) => entry.blueprint.id === candidate.blueprint.id
     );
@@ -293,7 +320,7 @@ export function App() {
       return;
     }
 
-    const nextGeneratedCandidates = generateSettingsCandidates(repair.nextProject, brief);
+    const nextGeneratedCandidates = generateCandidates(repair.nextProject, brief);
     const nextBlockedCandidateGap = summarizeBlockedCandidateGap(
       repair.nextReport,
       repair.nextExportReadiness,
@@ -432,28 +459,37 @@ export function App() {
     });
   }
 
-  function createFreshProject() {
-    const nextProject = createSettingsStarterProject();
-    const nextBrief = createInitialSettingsBrief();
+  function createFreshProject(screenType: ScreenType = brief.screenType) {
+    const nextProject = createStarterProject(screenType);
+    const nextBrief = createInitialBrief(screenType);
+    const nextDefaultBlueprintId = getDefaultBlueprintId(screenType);
     const fingerprint = serializeProjectFingerprint(
       nextProject,
       nextBrief,
-      defaultSettingsBlueprintId
+      nextDefaultBlueprintId
     );
 
     startTransition(() => {
       setProject(nextProject);
       setBrief(nextBrief);
-      setActiveBlueprintId(defaultSettingsBlueprintId);
+      setActiveBlueprintId(nextDefaultBlueprintId);
       setRepairHistory([]);
       setProjectDirectoryHandle(null);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
       setNotice({
         tone: "neutral",
-        message: "Started a new settings candidate from the local starter baseline."
+        message: `Started a new ${screenType} candidate from the local starter baseline.`
       });
     });
+  }
+
+  function switchScreenType(screenType: ScreenType) {
+    if (screenType === brief.screenType) {
+      return;
+    }
+
+    createFreshProject(screenType);
   }
 
   async function openProject() {
@@ -564,10 +600,10 @@ export function App() {
     <main className="app-shell">
       <aside className="left-panel">
         <header className="panel-header">
-          <h1>Settings Critic Workbench</h1>
+          <h1>UI Critic Workbench</h1>
           <p>
-            Author a structured settings brief, edit one candidate, and score it
-            live against the critic rules.
+            Author a structured screen brief, edit one candidate, and score it live against the
+            critic rules.
             {busyLabel ? ` ${busyLabel}` : ""}
           </p>
         </header>
@@ -586,15 +622,16 @@ export function App() {
           onExport={exportProject}
         />
 
-        <SettingsBriefEditor
+        <ScreenBriefEditor
           brief={brief}
+          onScreenTypeChange={switchScreenType}
           onTitleChange={setBriefTitle}
           onDensityChange={setBriefDensity}
         />
 
         <BlueprintLibraryPanel
           activeBlueprintId={activeBlueprintId}
-          blueprints={settingsBlueprints}
+          blueprints={availableBlueprints}
           brief={brief}
           onApplyBlueprint={applySelectedBlueprint}
           onBlueprintChange={setActiveBlueprintId}

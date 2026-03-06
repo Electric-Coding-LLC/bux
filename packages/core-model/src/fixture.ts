@@ -2,6 +2,8 @@ import {
   type CriticReport,
   type ConstraintsDocument,
   CURRENT_SCHEMA_VERSION,
+  type MarketingLandingScreenBrief,
+  type OnboardingScreenBrief,
   type PageDocument,
   type PlaygroundProject,
   type SettingsScreenBrief,
@@ -191,6 +193,20 @@ export const canonicalSettingsScreenBriefFixture: SettingsScreenBrief = {
   screenType: "settings",
   title: "Workspace settings",
   density: "comfortable"
+};
+
+export const canonicalOnboardingScreenBriefFixture: OnboardingScreenBrief = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  screenType: "onboarding",
+  title: "Get your workspace ready",
+  density: "guided"
+};
+
+export const canonicalMarketingLandingScreenBriefFixture: MarketingLandingScreenBrief = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  screenType: "marketingLanding",
+  title: "Launch with a clearer product story",
+  density: "focused"
 };
 
 export const canonicalCriticReportFixture: CriticReport = {
