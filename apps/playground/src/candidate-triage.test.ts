@@ -310,6 +310,7 @@ describe("summarizeActiveBlueprintStatus", () => {
 
     expect(summary?.label).toBe("Matching approved blueprint");
     expect(summary?.status).toBe("approved");
+    expect(summary?.canRestoreBaseline).toBe(false);
     expect(summary?.summary).toContain("matches that approved baseline exactly");
   });
 
@@ -336,6 +337,7 @@ describe("summarizeActiveBlueprintStatus", () => {
 
     expect(summary?.label).toBe("Drifted from blueprint");
     expect(summary?.status).toBe("blocked");
+    expect(summary?.canRestoreBaseline).toBe(true);
     expect(summary?.summary).toContain("8 points behind");
     expect(summary?.summary).toContain("2 more findings");
     expect(summary?.summary).toContain("no longer clears export");
@@ -364,6 +366,7 @@ describe("summarizeActiveBlueprintStatus", () => {
 
     expect(summary?.label).toBe("Customized from blueprint");
     expect(summary?.status).toBe("approved");
+    expect(summary?.canRestoreBaseline).toBe(true);
     expect(summary?.summary).toContain("10 points ahead");
     expect(summary?.summary).toContain("2 fewer findings");
     expect(summary?.summary).toContain("now clears export");
