@@ -13,6 +13,9 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {
+      "@bux/exporter/browser": [
+        "packages/exporter/src/browser.ts"
+      ],
       "@bux/*": [
         "packages/*/src/index.ts"
       ]

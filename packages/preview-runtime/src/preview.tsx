@@ -1,16 +1,26 @@
 import type {
+  BreakpointName,
   PlaygroundProject,
   SectionNode,
   StressCopyMode,
   StressDocument
 } from "@bux/core-model";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  clampResponsiveColumns,
+  resolveInlineFieldColumns,
+  resolvePreviewLayout
+} from "./layout";
 
 export interface PlaygroundPreviewProps {
   project: PlaygroundProject;
+  activeBreakpoint?: BreakpointName;
 }
 
-function tokenCssVariables(project: PlaygroundProject): CSSProperties {
+function tokenCssVariables(
+  project: PlaygroundProject,
+  activeBreakpoint?: BreakpointName
+): CSSProperties {
   const accent = project.tokens.colors.roles["accent.primary"] ?? "#0F766E";
   const textPrimary = project.tokens.colors.roles["text.primary"] ?? "#111827";
   const textSecondary =
@@ -26,6 +36,7 @@ function tokenCssVariables(project: PlaygroundProject): CSSProperties {
     project.tokens.spacing.density[project.stress.densityMode] ?? 1;
   const scaledSpace = (index: number, fallback: number): string =>
     `${Math.round((spacingScale[index] ?? fallback) * densityFactor)}px`;
+  const layout = resolvePreviewLayout(project, activeBreakpoint);
 
   return {
     "--token-accent-primary": accent,
@@ -42,7 +53,9 @@ function tokenCssVariables(project: PlaygroundProject): CSSProperties {
     "--token-space-3": scaledSpace(2, 12),
     "--token-space-4": scaledSpace(3, 16),
     "--token-space-6": scaledSpace(5, 32),
-    "--token-radius-md": `${project.tokens.radii.md}px`
+    "--token-radius-md": `${project.tokens.radii.md}px`,
+    "--preview-container-width": `${layout.containerWidth}px`,
+    "--preview-gutter": `${layout.gutter}px`
   } as CSSProperties;
 }
 
@@ -81,7 +94,11 @@ function renderStateBanner(stress: StressDocument): ReactNode {
   return <p className={`preview-state-banner state-${stress.stateMode}`}>{label}</p>;
 }
 
-function renderHero(section: SectionNode, stress: StressDocument): ReactNode {
+function renderHero(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = isLoading
@@ -103,9 +120,12 @@ function renderHero(section: SectionNode, stress: StressDocument): ReactNode {
   const secondaryCta = asString(section.slots.secondaryCta, "Secondary");
   const ctaCount = asNumber(section.props.ctaCount, 1);
   const hasMedia = !isEmpty && Boolean(section.props.hasMedia);
+  const heroClassName = activeBreakpointLayout.isCompact
+    ? "preview-section preview-hero preview-hero-stacked"
+    : "preview-section preview-hero";
 
   return (
-    <section className="preview-section preview-hero" data-section-id={section.id}>
+    <section className={heroClassName} data-section-id={section.id}>
       {renderStateBanner(stress)}
       <div className="preview-hero-content">
         {eyebrow.length > 0 ? <p className="preview-eyebrow">{eyebrow}</p> : null}
@@ -133,11 +153,19 @@ function renderHero(section: SectionNode, stress: StressDocument): ReactNode {
   );
 }
 
-function renderFeatureGrid(section: SectionNode, stress: StressDocument): ReactNode {
+function renderFeatureGrid(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = applyCopyStress(asString(section.slots.heading, "Features"), stress.copyMode);
-  const columns = Math.max(1, Math.min(4, asNumber(section.props.columns, 3)));
+  const columns = clampResponsiveColumns(
+    Math.max(1, Math.min(4, asNumber(section.props.columns, 3))),
+    activeBreakpointLayout,
+    { compact: 1, medium: 2, wide: 4 }
+  );
   const baseItems = asArray<{ title?: string; body?: string }>(section.slots.items);
 
   const items = isLoading
@@ -172,7 +200,11 @@ function renderFeatureGrid(section: SectionNode, stress: StressDocument): ReactN
   );
 }
 
-function renderForm(section: SectionNode, stress: StressDocument): ReactNode {
+function renderForm(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = applyCopyStress(asString(section.slots.heading, "Form"), stress.copyMode);
@@ -183,13 +215,23 @@ function renderForm(section: SectionNode, stress: StressDocument): ReactNode {
       );
   const submitLabel = asString(section.slots.submitLabel, "Submit");
   const layout = asString(section.props.layout, "stacked");
+  const inlineColumns =
+    layout === "inline" ? resolveInlineFieldColumns(activeBreakpointLayout) : 1;
 
   return (
     <section className="preview-section preview-form" data-section-id={section.id}>
       {renderStateBanner(stress)}
       <h2>{heading}</h2>
       {isEmpty ? <p className="preview-empty-copy">No form fields configured.</p> : null}
-      <form className={`preview-form-fields layout-${layout}`}>
+      <form
+        className={`preview-form-fields layout-${layout}`}
+        style={{
+          gridTemplateColumns:
+            layout === "inline"
+              ? `repeat(${inlineColumns}, minmax(0, 1fr))`
+              : undefined
+        }}
+      >
         {isLoading
           ? ["Loading field 1", "Loading field 2", "Loading field 3"].map((label) => (
               <label key={label} className="preview-form-field">
@@ -245,11 +287,23 @@ function renderList(section: SectionNode, stress: StressDocument): ReactNode {
   );
 }
 
-function renderTable(section: SectionNode, stress: StressDocument): ReactNode {
+function renderTable(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = applyCopyStress(asString(section.slots.heading, "Table"), stress.copyMode);
-  const columns = Math.max(1, Math.min(12, asNumber(section.props.columns, 4)));
+  const columns = clampResponsiveColumns(
+    Math.max(1, Math.min(12, asNumber(section.props.columns, 4))),
+    activeBreakpointLayout,
+    {
+      compact: 4,
+      medium: 8,
+      wide: 12
+    }
+  );
   const headers = asArray<string>(section.slots.headers).slice(0, columns);
   const rows = asArray<string[]>(section.slots.rows);
 
@@ -299,7 +353,11 @@ function renderTable(section: SectionNode, stress: StressDocument): ReactNode {
   );
 }
 
-function renderSettings(section: SectionNode, stress: StressDocument): ReactNode {
+function renderSettings(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = applyCopyStress(asString(section.slots.heading, "Settings"), stress.copyMode);
@@ -316,7 +374,16 @@ function renderSettings(section: SectionNode, stress: StressDocument): ReactNode
       {renderStateBanner(stress)}
       <h2>{heading}</h2>
       {groups.length === 0 ? <p className="preview-empty-copy">No settings groups.</p> : null}
-      <div className="preview-settings-groups">
+      <div
+        className="preview-settings-groups"
+        style={{
+          gridTemplateColumns: `repeat(${clampResponsiveColumns(
+            Math.max(1, asNumber(section.props.groupCount, groups.length || 1)),
+            activeBreakpointLayout,
+            { compact: 1, medium: 2, wide: 4 }
+          )}, minmax(0, 1fr))`
+        }}
+      >
         {groups.map((group, index) => (
           <article
             key={`${section.id}-group-${index}`}
@@ -334,20 +401,24 @@ function renderSettings(section: SectionNode, stress: StressDocument): ReactNode
   );
 }
 
-function renderSection(section: SectionNode, stress: StressDocument): ReactNode {
+function renderSection(
+  section: SectionNode,
+  stress: StressDocument,
+  activeBreakpointLayout: ReturnType<typeof resolvePreviewLayout>
+): ReactNode {
   switch (section.type) {
     case "hero":
-      return renderHero(section, stress);
+      return renderHero(section, stress, activeBreakpointLayout);
     case "featureGrid":
-      return renderFeatureGrid(section, stress);
+      return renderFeatureGrid(section, stress, activeBreakpointLayout);
     case "form":
-      return renderForm(section, stress);
+      return renderForm(section, stress, activeBreakpointLayout);
     case "list":
       return renderList(section, stress);
     case "table":
-      return renderTable(section, stress);
+      return renderTable(section, stress, activeBreakpointLayout);
     case "settings":
-      return renderSettings(section, stress);
+      return renderSettings(section, stress, activeBreakpointLayout);
     default:
       return (
         <section className="preview-section" data-section-id={section.id}>
@@ -359,12 +430,21 @@ function renderSection(section: SectionNode, stress: StressDocument): ReactNode 
   }
 }
 
-export function PlaygroundPreview({ project }: PlaygroundPreviewProps): ReactNode {
+export function PlaygroundPreview({
+  project,
+  activeBreakpoint
+}: PlaygroundPreviewProps): ReactNode {
+  const layout = resolvePreviewLayout(project, activeBreakpoint);
+
   return (
-    <div className="preview-root" style={tokenCssVariables(project)}>
+    <div
+      className="preview-root"
+      data-breakpoint={layout.breakpoint}
+      style={tokenCssVariables(project, activeBreakpoint)}
+    >
       <div className="preview-page">
         {project.page.sections.map((section) => (
-          <div key={section.id}>{renderSection(section, project.stress)}</div>
+          <div key={section.id}>{renderSection(section, project.stress, layout)}</div>
         ))}
       </div>
     </div>

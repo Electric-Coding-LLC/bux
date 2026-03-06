@@ -4,6 +4,9 @@ A UX and UI design tool
 ## Planning
 - [Initial planning doc](./docs/initial-planning.md)
 - [Build checklist](./docs/build-checklist.md)
+- [Product direction](./docs/product-direction.md)
+- [Implementation roadmap](./docs/implementation-roadmap.md)
+- [Critic rules v1](./docs/critic-rules-v1.md)
 - [MCP contract (draft)](./docs/mcp-contract.md)
 - [Snapshot baseline rules](./docs/snapshot-baseline.md)
 

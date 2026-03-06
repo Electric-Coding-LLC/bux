@@ -6,6 +6,7 @@ import type {
   SectionType
 } from "@bux/core-model";
 import { type ReactNode } from "react";
+import { renderSectionContentEditor } from "./section-content-editor";
 
 export interface SectionChanges {
   variant?: string;
@@ -30,8 +31,64 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
-function rangeLabels(prefix: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) => `${prefix} ${index + 1}`);
+function resizeStringArray(
+  existing: string[],
+  nextCount: number,
+  fallbackPrefix: string
+): string[] {
+  return Array.from(
+    { length: nextCount },
+    (_, index) => existing[index] ?? `${fallbackPrefix} ${index + 1}`
+  );
+}
+
+function resizeFeatureItems(existing: unknown, nextCount: number): Array<{ title: string; body: string }> {
+  const items = Array.isArray(existing)
+    ? existing.flatMap((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          return [];
+        }
+
+        return [
+          {
+            title:
+              typeof (entry as { title?: unknown }).title === "string"
+                ? (entry as { title: string }).title
+                : "",
+            body:
+              typeof (entry as { body?: unknown }).body === "string"
+                ? (entry as { body: string }).body
+                : ""
+          }
+        ];
+      })
+    : [];
+
+  return Array.from({ length: nextCount }, (_, index) => {
+    const current = items[index];
+    return (
+      current ?? {
+        title: `Feature ${index + 1}`,
+        body: "Describe the value of this feature."
+      }
+    );
+  });
+}
+
+function stringMatrix(value: unknown): string[][] {
+  return Array.isArray(value)
+    ? value.map((row) =>
+        Array.isArray(row)
+          ? row.filter((entry): entry is string => typeof entry === "string")
+          : []
+      )
+    : [];
+}
+
+function resizeTableRows(existing: string[][], columns: number): string[][] {
+  return existing.map((row, rowIndex) =>
+    Array.from({ length: columns }, (_, columnIndex) => row[columnIndex] ?? `Cell ${rowIndex + 1}-${columnIndex + 1}`)
+  );
 }
 
 function renderSectionControls(
@@ -69,6 +126,7 @@ function renderSectionControls(
                 })
               }
             />
+            <output>{typeof section.props.ctaCount === "number" ? section.props.ctaCount : 1}</output>
           </label>
           <label className="section-inline-control">
             <span>Media</span>
@@ -82,7 +140,8 @@ function renderSectionControls(
           </label>
         </>
       );
-    case "featureGrid":
+    case "featureGrid": {
+      const items = Array.isArray(section.slots.items) ? section.slots.items : [];
       return (
         <>
           <label className="section-inline-control">
@@ -99,6 +158,7 @@ function renderSectionControls(
                 })
               }
             />
+            <output>{typeof section.props.columns === "number" ? section.props.columns : 3}</output>
           </label>
           <label className="section-inline-control">
             <span>Show Icons</span>
@@ -117,27 +177,21 @@ function renderSectionControls(
               min={1}
               max={12}
               step={1}
-              value={Array.isArray(section.slots.items) ? section.slots.items.length : 3}
+              value={items.length || 3}
               onChange={(event) => {
                 const nextCount = Number(event.currentTarget.value);
-                const existing = Array.isArray(section.slots.items) ? section.slots.items : [];
-                const items = Array.from({ length: nextCount }, (_, index) => {
-                  const current = existing[index];
-                  if (current && typeof current === "object") {
-                    return current;
-                  }
-                  return {
-                    title: `Feature ${index + 1}`,
-                    body: "Describe the value of this feature."
-                  };
+                onUpdateSection(section.id, {
+                  slots: { items: resizeFeatureItems(items, nextCount) }
                 });
-                onUpdateSection(section.id, { slots: { items } });
               }}
             />
+            <output>{items.length || 3}</output>
           </label>
         </>
       );
-    case "form":
+    }
+    case "form": {
+      const fields = stringArray(section.slots.fields);
       return (
         <>
           <label className="section-inline-control">
@@ -159,17 +213,22 @@ function renderSectionControls(
               min={1}
               max={8}
               step={1}
-              value={stringArray(section.slots.fields).length || 4}
+              value={fields.length || 4}
               onChange={(event) =>
                 onUpdateSection(section.id, {
-                  slots: { fields: rangeLabels("Field", Number(event.currentTarget.value)) }
+                  slots: {
+                    fields: resizeStringArray(fields, Number(event.currentTarget.value), "Field")
+                  }
                 })
               }
             />
+            <output>{fields.length || 4}</output>
           </label>
         </>
       );
-    case "list":
+    }
+    case "list": {
+      const items = stringArray(section.slots.items);
       return (
         <label className="section-inline-control">
           <span>Items</span>
@@ -178,20 +237,23 @@ function renderSectionControls(
             min={1}
             max={25}
             step={1}
-            value={stringArray(section.slots.items).length || 3}
+            value={items.length || 3}
             onChange={(event) => {
               const count = Number(event.currentTarget.value);
-              const existing = stringArray(section.slots.items);
-              const next = Array.from(
-                { length: count },
-                (_, index) => existing[index] ?? `List item ${index + 1}`
-              );
-              onUpdateSection(section.id, { slots: { items: next } });
+              onUpdateSection(section.id, {
+                slots: { items: resizeStringArray(items, count, "List item") }
+              });
             }}
           />
+          <output>{items.length || 3}</output>
         </label>
       );
-    case "table":
+    }
+    case "table": {
+      const columns = typeof section.props.columns === "number" ? section.props.columns : 4;
+      const headers = stringArray(section.slots.headers);
+      const rows = stringMatrix(section.slots.rows);
+
       return (
         <label className="section-inline-control">
           <span>Columns</span>
@@ -200,14 +262,24 @@ function renderSectionControls(
             min={1}
             max={12}
             step={1}
-            value={typeof section.props.columns === "number" ? section.props.columns : 4}
-            onChange={(event) =>
-              onUpdateSection(section.id, { props: { columns: Number(event.currentTarget.value) } })
-            }
+            value={columns}
+            onChange={(event) => {
+              const nextColumns = Number(event.currentTarget.value);
+              onUpdateSection(section.id, {
+                props: { columns: nextColumns },
+                slots: {
+                  headers: resizeStringArray(headers, nextColumns, "Column"),
+                  rows: resizeTableRows(rows, nextColumns)
+                }
+              });
+            }}
           />
+          <output>{columns}</output>
         </label>
       );
-    case "settings":
+    }
+    case "settings": {
+      const groups = stringArray(section.slots.groups);
       return (
         <label className="section-inline-control">
           <span>Groups</span>
@@ -221,12 +293,14 @@ function renderSectionControls(
               const count = Number(event.currentTarget.value);
               onUpdateSection(section.id, {
                 props: { groupCount: count },
-                slots: { groups: rangeLabels("Group", count) }
+                slots: { groups: resizeStringArray(groups, count, "Group") }
               });
             }}
           />
+          <output>{typeof section.props.groupCount === "number" ? section.props.groupCount : 3}</output>
         </label>
       );
+    }
     default:
       return null;
   }
@@ -265,6 +339,13 @@ export function SectionEditor({
           const rule = project.constraints.sectionRules.find(
             (entry) => entry.sectionType === section.type
           );
+          const availableVariants =
+            rule && rule.allowedVariants.length > 0
+              ? rule.allowedVariants
+              : [section.variant];
+          const variantValue = availableVariants.includes(section.variant)
+            ? section.variant
+            : availableVariants[0] ?? section.variant;
 
           return (
             <li className="section-item" key={section.id}>
@@ -304,12 +385,12 @@ export function SectionEditor({
                 <label className="section-inline-control">
                   <span>Variant</span>
                   <select
-                    value={section.variant}
+                    value={variantValue}
                     onChange={(event) =>
                       onUpdateSection(section.id, { variant: event.currentTarget.value })
                     }
                   >
-                    {rule.allowedVariants.map((variant) => (
+                    {availableVariants.map((variant) => (
                       <option key={variant} value={variant}>
                         {variant}
                       </option>
@@ -319,6 +400,7 @@ export function SectionEditor({
               ) : null}
 
               {renderSectionControls(section, onUpdateSection)}
+              {renderSectionContentEditor(section, onUpdateSection)}
             </li>
           );
         })}

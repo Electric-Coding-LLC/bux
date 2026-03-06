@@ -1,5 +1,6 @@
 import { applyAction } from "@bux/core-engine";
 import {
+  type BreakpointName,
   canonicalProjectFixture,
   type DensityMode,
   type PlaygroundProject,
@@ -7,10 +8,26 @@ import {
   type StressCopyMode,
   type StressStateMode
 } from "@bux/core-model";
-import { PlaygroundPreview } from "@bux/preview-runtime";
-import { createSectionDraft, validateProjectSections } from "@bux/section-kit";
-import { useMemo, useState } from "react";
+import { collectValidationIssues } from "@bux/exporter/browser";
+import { PlaygroundPreview, resolvePreviewLayout } from "@bux/preview-runtime";
+import { createSectionDraft } from "@bux/section-kit";
+import { startTransition, useEffect, useMemo, useState } from "react";
+import { ConstraintsEditor } from "./constraints-editor";
+import {
+  canUseDirectoryPicker,
+  createNewProject,
+  isPickerAbort,
+  loadProjectFromDirectoryHandle,
+  promptForDirectory,
+  saveProjectToDirectoryHandle,
+  serializeProjectFingerprint,
+  validationErrorMessage
+} from "./project-io";
+import { PreviewControls } from "./preview-controls";
+import { ProjectToolbar, type ProjectNotice } from "./project-toolbar";
 import { SectionEditor, type SectionChanges } from "./section-editor";
+import { SectionRulesEditor } from "./section-rules-editor";
+import { ValidationPanel } from "./validation-panel";
 
 type NumericTokenField = {
   id: string;
@@ -95,12 +112,41 @@ export function App() {
     structuredClone(canonicalProjectFixture)
   );
   const [newSectionType, setNewSectionType] = useState<SectionType>("form");
-  const validationIssues = useMemo(() => validateProjectSections(project), [project]);
+  const [activeBreakpoint, setActiveBreakpoint] = useState<BreakpointName>("md");
+  const [projectDirectoryHandle, setProjectDirectoryHandle] =
+    useState<FileSystemDirectoryHandle | null>(null);
+  const [savedFingerprint, setSavedFingerprint] = useState(() =>
+    serializeProjectFingerprint(canonicalProjectFixture)
+  );
+  const [busyLabel, setBusyLabel] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ProjectNotice | null>({
+    tone: "neutral",
+    message: "Editing the baseline fixture in memory."
+  });
+  const validationIssues = useMemo(() => collectValidationIssues(project), [project]);
+  const supportsDirectoryPicker = canUseDirectoryPicker();
+  const currentFingerprint = useMemo(() => serializeProjectFingerprint(project), [project]);
+  const previewLayout = useMemo(
+    () => resolvePreviewLayout(project, activeBreakpoint),
+    [project, activeBreakpoint]
+  );
   const accentColor = project.tokens.colors.roles["accent.primary"] ?? "#0F766E";
+  const configuredBreakpoints = useMemo(
+    () => project.constraints.layout.breakpoints.map((entry) => entry.breakpoint),
+    [project]
+  );
+  const isDirty = currentFingerprint !== savedFingerprint;
+  const projectName = projectDirectoryHandle?.name ?? "Untitled project";
 
   function dispatch(action: Parameters<typeof applyAction>[1]) {
     setProject((current) => applyAction(current, action));
   }
+
+  useEffect(() => {
+    if (!configuredBreakpoints.includes(activeBreakpoint)) {
+      setActiveBreakpoint(previewLayout.breakpoint);
+    }
+  }, [activeBreakpoint, configuredBreakpoints, previewLayout.breakpoint]);
 
   function setNumericToken(path: string[], value: number) {
     dispatch({ type: "setTokenValue", path, value });
@@ -119,6 +165,24 @@ export function App() {
     value: StressCopyMode | StressStateMode | DensityMode
   ) {
     dispatch({ type: "setStressMode", mode, value });
+  }
+
+  function setConstraintValue(path: string[], value: string | number) {
+    dispatch({ type: "setConstraintValue", path, value });
+  }
+
+  function updateSectionRule(
+    sectionType: SectionType,
+    changes: {
+      allowedVariants?: string[];
+      maxItems?: number | null;
+    }
+  ) {
+    dispatch({
+      type: "updateSectionRule",
+      sectionType,
+      changes
+    });
   }
 
   function addSection() {
@@ -153,13 +217,143 @@ export function App() {
     });
   }
 
+  async function withBusyState(
+    label: string,
+    action: () => Promise<void>
+  ): Promise<void> {
+    setBusyLabel(label);
+
+    try {
+      await action();
+    } finally {
+      setBusyLabel(null);
+    }
+  }
+
+  function applyLoadedProject(
+    nextProject: PlaygroundProject,
+    directoryHandle: FileSystemDirectoryHandle | null,
+    nextNotice: ProjectNotice
+  ) {
+    const fingerprint = serializeProjectFingerprint(nextProject);
+
+    startTransition(() => {
+      setProject(nextProject);
+      setProjectDirectoryHandle(directoryHandle);
+      setSavedFingerprint(fingerprint);
+      setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
+      setNotice(nextNotice);
+    });
+  }
+
+  function createFreshProject() {
+    const nextProject = createNewProject();
+    applyLoadedProject(nextProject, null, {
+      tone: "neutral",
+      message: "Started a new in-memory project from the canonical baseline."
+    });
+  }
+
+  async function openProject() {
+    await withBusyState("Opening project...", async () => {
+      try {
+        const directoryHandle = await promptForDirectory("open");
+        const nextProject = await loadProjectFromDirectoryHandle(directoryHandle);
+
+        applyLoadedProject(nextProject, directoryHandle, {
+          tone: "success",
+          message: `Opened project from ${directoryHandle.name}.`
+        });
+      } catch (error) {
+        if (isPickerAbort(error)) {
+          setNotice({ tone: "neutral", message: "Open cancelled." });
+          return;
+        }
+
+        setNotice({
+          tone: "error",
+          message: `Could not open project. ${validationErrorMessage(error)}`
+        });
+      }
+    });
+  }
+
+  async function saveProject(saveAs: boolean) {
+    await withBusyState(saveAs ? "Saving project as..." : "Saving project...", async () => {
+      try {
+        const directoryHandle =
+          !saveAs && projectDirectoryHandle
+            ? projectDirectoryHandle
+            : await promptForDirectory("save");
+        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project);
+
+        setProjectDirectoryHandle(directoryHandle);
+        setSavedFingerprint(currentFingerprint);
+        setNotice({
+          tone: "success",
+          message: `Saved ${savedFiles.length} files to ${directoryHandle.name}.`
+        });
+      } catch (error) {
+        if (isPickerAbort(error)) {
+          setNotice({ tone: "neutral", message: "Save cancelled." });
+          return;
+        }
+
+        setNotice({
+          tone: "error",
+          message: `Could not save project. ${validationErrorMessage(error)}`
+        });
+      }
+    });
+  }
+
+  async function exportProject() {
+    await withBusyState("Exporting bundle...", async () => {
+      try {
+        const directoryHandle = await promptForDirectory("save");
+        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project);
+
+        setNotice({
+          tone: "success",
+          message: `Exported ${savedFiles.length} canonical files to ${directoryHandle.name}.`
+        });
+      } catch (error) {
+        if (isPickerAbort(error)) {
+          setNotice({ tone: "neutral", message: "Export cancelled." });
+          return;
+        }
+
+        setNotice({
+          tone: "error",
+          message: `Could not export bundle. ${validationErrorMessage(error)}`
+        });
+      }
+    });
+  }
+
   return (
     <main className="app-shell">
       <aside className="left-panel">
         <header className="panel-header">
           <h1>UI System Playground</h1>
-          <p>Model-driven controls for token and section fundamentals.</p>
+          <p>
+            Model-driven controls for token, section, and export fundamentals.
+            {busyLabel ? ` ${busyLabel}` : ""}
+          </p>
         </header>
+
+        <ProjectToolbar
+          projectName={projectName}
+          isDirty={isDirty}
+          isBusy={busyLabel !== null}
+          supportsDirectoryPicker={supportsDirectoryPicker}
+          notice={notice}
+          onCreateNew={createFreshProject}
+          onOpen={openProject}
+          onSave={() => saveProject(false)}
+          onSaveAs={() => saveProject(true)}
+          onExport={exportProject}
+        />
 
         <section className="panel-block">
           <h2>Tokens</h2>
@@ -204,6 +398,16 @@ export function App() {
           onMoveSection={moveSection}
           onRemoveSection={removeSection}
           onUpdateSection={updateSection}
+        />
+
+        <ConstraintsEditor
+          project={project}
+          onSetConstraintValue={setConstraintValue}
+        />
+
+        <SectionRulesEditor
+          project={project}
+          onUpdateSectionRule={updateSectionRule}
         />
 
         <section className="panel-block">
@@ -259,25 +463,19 @@ export function App() {
           </div>
         </section>
 
-        <section className="panel-block">
-          <h2>Validation</h2>
-          {validationIssues.length === 0 ? (
-            <p className="validation-ok">No section issues.</p>
-          ) : (
-            <ul className="validation-list">
-              {validationIssues.map((entry, index) => (
-                <li key={`${entry.code}-${entry.path}-${index}`}>
-                  <strong>{entry.sectionId}</strong>
-                  <span>{entry.message}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <ValidationPanel issues={validationIssues} />
       </aside>
 
       <section className="preview-panel">
-        <PlaygroundPreview project={project} />
+        <PreviewControls
+          activeBreakpoint={previewLayout.breakpoint}
+          breakpoints={configuredBreakpoints}
+          columns={previewLayout.columns}
+          gutter={previewLayout.gutter}
+          containerWidth={previewLayout.containerWidth}
+          onBreakpointChange={setActiveBreakpoint}
+        />
+        <PlaygroundPreview project={project} activeBreakpoint={previewLayout.breakpoint} />
       </section>
     </main>
   );

@@ -4,6 +4,10 @@ export type BreakpointName = "xs" | "sm" | "md" | "lg" | "xl";
 export type DensityMode = "comfortable" | "compact";
 export type StressCopyMode = "short" | "long";
 export type StressStateMode = "default" | "empty" | "loading" | "error";
+export type ScreenType = "settings";
+export type SettingsScreenDensity = DensityMode | "calm";
+export type CriticFindingSeverity = "low" | "medium" | "high";
+export type CriticVerdict = "pass" | "warn" | "fail";
 export type SectionType =
   | "hero"
   | "featureGrid"
@@ -107,6 +111,37 @@ export interface SummaryDocument {
     sectionOrder: SectionType[];
   };
   notes: string[];
+}
+
+export interface SettingsScreenBrief {
+  schemaVersion: string;
+  screenType: "settings";
+  title: string;
+  density: SettingsScreenDensity;
+}
+
+export type ScreenBrief = SettingsScreenBrief;
+
+export interface CriticFinding {
+  code: string;
+  severity: CriticFindingSeverity;
+  message: string;
+  path: string;
+}
+
+export interface CriticReportSummary {
+  totalRules: number;
+  triggeredRules: number;
+  severityCounts: Record<CriticFindingSeverity, number>;
+}
+
+export interface CriticReport {
+  schemaVersion: string;
+  screenType: ScreenType;
+  score: number;
+  verdict: CriticVerdict;
+  findings: CriticFinding[];
+  summary: CriticReportSummary;
 }
 
 export interface StressDocument {

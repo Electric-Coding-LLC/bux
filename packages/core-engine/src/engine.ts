@@ -21,6 +21,12 @@ export interface SetTokenValueAction {
   value: JSONValue;
 }
 
+export interface SetConstraintValueAction {
+  type: "setConstraintValue";
+  path: string[];
+  value: JSONValue;
+}
+
 export interface AddSectionAction {
   type: "addSection";
   section: Omit<SectionNode, "id"> & { id?: string };
@@ -34,6 +40,15 @@ export interface UpdateSectionAction {
     variant?: string;
     props?: JSONObject;
     slots?: Record<string, JSONValue>;
+  };
+}
+
+export interface UpdateSectionRuleAction {
+  type: "updateSectionRule";
+  sectionType: SectionType;
+  changes: {
+    allowedVariants?: string[];
+    maxItems?: number | null;
   };
 }
 
@@ -56,8 +71,10 @@ export interface SetStressModeAction {
 
 export type EngineAction =
   | SetTokenValueAction
+  | SetConstraintValueAction
   | AddSectionAction
   | UpdateSectionAction
+  | UpdateSectionRuleAction
   | ReorderSectionAction
   | RemoveSectionAction
   | SetStressModeAction;
@@ -66,27 +83,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseArrayIndex(rawIndex: string): number {
+function parseArrayIndex(rawIndex: string, label: string): number {
   const parsed = Number(rawIndex);
   if (!Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(`Invalid array index "${rawIndex}" in token path.`);
+    throw new Error(`Invalid array index "${rawIndex}" in ${label.toLowerCase()} path.`);
   }
 
   return parsed;
 }
 
-function setValueAtPath(root: unknown, path: string[], value: JSONValue): void {
+function setValueAtPath(
+  root: unknown,
+  path: string[],
+  value: JSONValue,
+  label: string
+): void {
   if (path.length === 0) {
-    throw new Error("Token path cannot be empty.");
+    throw new Error(`${label} path cannot be empty.`);
   }
 
   let cursor: unknown = root;
 
   for (const segment of path.slice(0, -1)) {
     if (Array.isArray(cursor)) {
-      const index = parseArrayIndex(segment);
+      const index = parseArrayIndex(segment, label);
       if (index >= cursor.length) {
-        throw new Error(`Array index "${segment}" is out of range in token path.`);
+        throw new Error(`Array index "${segment}" is out of range in ${label.toLowerCase()} path.`);
       }
       cursor = cursor[index];
       continue;
@@ -94,24 +116,26 @@ function setValueAtPath(root: unknown, path: string[], value: JSONValue): void {
 
     if (isRecord(cursor)) {
       if (!(segment in cursor)) {
-        throw new Error(`Token path segment "${segment}" does not exist.`);
+        throw new Error(`${label} path segment "${segment}" does not exist.`);
       }
       cursor = cursor[segment];
       continue;
     }
 
-    throw new Error(`Token path segment "${segment}" is not traversable.`);
+    throw new Error(`${label} path segment "${segment}" is not traversable.`);
   }
 
   const finalSegment = path[path.length - 1];
   if (finalSegment === undefined) {
-    throw new Error("Token path cannot be empty.");
+    throw new Error(`${label} path cannot be empty.`);
   }
 
   if (Array.isArray(cursor)) {
-    const index = parseArrayIndex(finalSegment);
+    const index = parseArrayIndex(finalSegment, label);
     if (index >= cursor.length) {
-      throw new Error(`Array index "${finalSegment}" is out of range in token path.`);
+      throw new Error(
+        `Array index "${finalSegment}" is out of range in ${label.toLowerCase()} path.`
+      );
     }
     cursor[index] = value;
     return;
@@ -122,7 +146,7 @@ function setValueAtPath(root: unknown, path: string[], value: JSONValue): void {
     return;
   }
 
-  throw new Error(`Token path segment "${finalSegment}" is not writable.`);
+  throw new Error(`${label} path segment "${finalSegment}" is not writable.`);
 }
 
 function toKebabCase(input: string): string {
@@ -209,7 +233,11 @@ export function applyAction(
 
   switch (action.type) {
     case "setTokenValue": {
-      setValueAtPath(nextProject.tokens, action.path, action.value);
+      setValueAtPath(nextProject.tokens, action.path, action.value, "Token");
+      return withUpdatedSummary(nextProject, options);
+    }
+    case "setConstraintValue": {
+      setValueAtPath(nextProject.constraints, action.path, action.value, "Constraint");
       return withUpdatedSummary(nextProject, options);
     }
     case "addSection": {
@@ -247,6 +275,28 @@ export function applyAction(
 
       if (action.changes.slots !== undefined) {
         section.slots = { ...section.slots, ...action.changes.slots };
+      }
+
+      return withUpdatedSummary(nextProject, options);
+    }
+    case "updateSectionRule": {
+      const rule = nextProject.constraints.sectionRules.find(
+        (entry) => entry.sectionType === action.sectionType
+      );
+      if (!rule) {
+        throw new Error(`Section rule for type "${action.sectionType}" was not found.`);
+      }
+
+      if (action.changes.allowedVariants !== undefined) {
+        rule.allowedVariants = [...action.changes.allowedVariants];
+      }
+
+      if (action.changes.maxItems !== undefined) {
+        if (action.changes.maxItems === null) {
+          delete rule.maxItems;
+        } else {
+          rule.maxItems = action.changes.maxItems;
+        }
       }
 
       return withUpdatedSummary(nextProject, options);
