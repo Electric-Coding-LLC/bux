@@ -30,6 +30,14 @@ const verdictLabels: Record<CriticVerdict, string> = {
   warn: "Warn"
 };
 
+function formatDelta(value: number, suffix = ""): string {
+  if (value > 0) {
+    return `+${value}${suffix}`;
+  }
+
+  return `${value}${suffix}`;
+}
+
 export function CandidateListPanel({
   activeBlueprintId,
   activeExportReadiness,
@@ -116,6 +124,36 @@ export function CandidateListPanel({
             </div>
           </div>
           <p>{activeBlueprintStatus.summary}</p>
+          <div className="active-blueprint-compare">
+            <div className="active-blueprint-compare-row">
+              <strong>Score</strong>
+              <span>
+                {activeBlueprintStatus.comparison.scores.current} vs{" "}
+                {activeBlueprintStatus.comparison.scores.baseline}
+              </span>
+              <span>{formatDelta(activeBlueprintStatus.comparison.scoreDelta)}</span>
+            </div>
+            <div className="active-blueprint-compare-row">
+              <strong>Findings</strong>
+              <span>
+                {activeBlueprintStatus.comparison.findings.current} vs{" "}
+                {activeBlueprintStatus.comparison.findings.baseline}
+              </span>
+              <span>{formatDelta(activeBlueprintStatus.comparison.findingDelta)}</span>
+            </div>
+            <div className="active-blueprint-compare-row">
+              <strong>Export</strong>
+              <span>
+                {activeBlueprintStatus.comparison.exportStatus.current === "approved"
+                  ? "Ready"
+                  : "Blocked"}{" "}
+                vs{" "}
+                {activeBlueprintStatus.comparison.exportStatus.baseline === "approved"
+                  ? "Ready"
+                  : "Blocked"}
+              </span>
+            </div>
+          </div>
         </section>
       ) : null}
 

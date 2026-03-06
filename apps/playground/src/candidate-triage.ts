@@ -27,6 +27,22 @@ export interface CandidateRecommendation {
 }
 
 export interface ActiveBlueprintStatusSummary {
+  comparison: {
+    exportStatus: {
+      baseline: string;
+      current: string;
+    };
+    findingDelta: number;
+    findings: {
+      baseline: number;
+      current: number;
+    };
+    scoreDelta: number;
+    scores: {
+      baseline: number;
+      current: number;
+    };
+  };
   canRestoreBaseline: boolean;
   candidate: GeneratedSettingsCandidate;
   label: string;
@@ -278,6 +294,29 @@ function summarizeRelativeExportStatus(
   return "still needs repair before export.";
 }
 
+function createActiveBlueprintComparison(
+  report: CriticReport,
+  exportReadiness: ExportReadiness,
+  baseline: GeneratedSettingsCandidate
+): ActiveBlueprintStatusSummary["comparison"] {
+  return {
+    exportStatus: {
+      baseline: baseline.exportReadiness.status,
+      current: exportReadiness.status
+    },
+    findingDelta: report.findings.length - baseline.report.findings.length,
+    findings: {
+      baseline: baseline.report.findings.length,
+      current: report.findings.length
+    },
+    scoreDelta: report.score - baseline.report.score,
+    scores: {
+      baseline: baseline.report.score,
+      current: report.score
+    }
+  };
+}
+
 export function summarizeActiveBlueprintStatus(
   activeBlueprintId: string | null,
   project: PlaygroundProject,
@@ -301,10 +340,16 @@ export function summarizeActiveBlueprintStatus(
   const matchesBaseline =
     serializeCandidateSurface(project, brief) ===
     serializeCandidateSurface(candidate.project, brief);
+  const comparison = createActiveBlueprintComparison(
+    report,
+    exportReadiness,
+    candidate
+  );
 
   if (matchesBaseline) {
     if (candidate.exportReadiness.canExport) {
       return {
+        comparison,
         canRestoreBaseline: false,
         candidate,
         label: "Matching approved blueprint",
@@ -314,6 +359,7 @@ export function summarizeActiveBlueprintStatus(
     }
 
     return {
+      comparison,
       canRestoreBaseline: false,
       candidate,
       label: "Matching blocked blueprint",
@@ -326,6 +372,7 @@ export function summarizeActiveBlueprintStatus(
   const findingDelta = report.findings.length - candidate.report.findings.length;
 
   return {
+    comparison,
     canRestoreBaseline: true,
     candidate,
     label: exportReadiness.canExport ? "Customized from blueprint" : "Drifted from blueprint",

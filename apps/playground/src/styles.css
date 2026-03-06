@@ -766,6 +766,35 @@ body {
   line-height: 1.45;
 }
 
+.active-blueprint-compare {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.active-blueprint-compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) 1fr auto;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 0.78rem;
+}
+
+.active-blueprint-compare-row strong {
+  color: #0f172a;
+}
+
+.active-blueprint-compare-row span {
+  color: #334155;
+  font-weight: 700;
+}
+
+.active-blueprint-status-blocked .active-blueprint-compare-row {
+  background: rgba(255, 255, 255, 0.58);
+}
+
 .active-blueprint-status-approved {
   border-color: #86efac;
   background: #f0fdf4;
