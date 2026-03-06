@@ -8,6 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bux/blueprint-library": "workspace:*",
+    "@bux/critic-rules": "workspace:*",
     "@bux/core-engine": "workspace:*",
     "@bux/core-model": "workspace:*",
     "@bux/preview-runtime": "workspace:*",

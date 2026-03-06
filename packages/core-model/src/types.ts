@@ -122,11 +122,45 @@ export interface SettingsScreenBrief {
 
 export type ScreenBrief = SettingsScreenBrief;
 
+export interface CriticRepairActionUpdateSection {
+  type: "updateSection";
+  sectionId: string;
+  changes: {
+    variant?: string;
+    props?: JSONObject;
+    slots?: Record<string, JSONValue>;
+  };
+}
+
+export interface CriticRepairActionReorderSection {
+  type: "reorderSection";
+  sectionId: string;
+  toIndex: number;
+}
+
+export interface CriticRepairActionRemoveSection {
+  type: "removeSection";
+  sectionId: string;
+}
+
+export type CriticRepairAction =
+  | CriticRepairActionUpdateSection
+  | CriticRepairActionReorderSection
+  | CriticRepairActionRemoveSection;
+
+export interface CriticSuggestedFix {
+  id: string;
+  label: string;
+  description: string;
+  actions: CriticRepairAction[];
+}
+
 export interface CriticFinding {
   code: string;
   severity: CriticFindingSeverity;
   message: string;
   path: string;
+  suggestedFix?: CriticSuggestedFix;
 }
 
 export interface CriticReportSummary {

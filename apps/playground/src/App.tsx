@@ -1,7 +1,12 @@
+import {
+  defaultSettingsBlueprintId,
+  settingsBlueprints
+} from "@bux/blueprint-library";
 import { applyAction } from "@bux/core-engine";
+import { evaluateSettingsScreen } from "@bux/critic-rules";
 import {
   type BreakpointName,
-  canonicalProjectFixture,
+  type CriticSuggestedFix,
   type DensityMode,
   type PlaygroundProject,
   type SectionType,
@@ -12,10 +17,17 @@ import { collectValidationIssues } from "@bux/exporter/browser";
 import { PlaygroundPreview, resolvePreviewLayout } from "@bux/preview-runtime";
 import { createSectionDraft } from "@bux/section-kit";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import { BlueprintLibraryPanel } from "./blueprint-library-panel";
+import { generateSettingsCandidates, type GeneratedSettingsCandidate } from "./candidate-generation";
+import { CandidateListPanel } from "./candidate-list-panel";
+import {
+  applyCriticSuggestedFix,
+  type AppliedRepairOutcome
+} from "./critic-repair";
 import { ConstraintsEditor } from "./constraints-editor";
+import { CriticPanel } from "./critic-panel";
 import {
   canUseDirectoryPicker,
-  createNewProject,
   isPickerAbort,
   loadProjectFromDirectoryHandle,
   promptForDirectory,
@@ -27,6 +39,14 @@ import { PreviewControls } from "./preview-controls";
 import { ProjectToolbar, type ProjectNotice } from "./project-toolbar";
 import { SectionEditor, type SectionChanges } from "./section-editor";
 import { SectionRulesEditor } from "./section-rules-editor";
+import { SettingsBriefEditor } from "./settings-brief-editor";
+import {
+  applySettingsBlueprintToProject,
+  createInitialSettingsBrief,
+  createSettingsStarterProject,
+  deriveBriefFromProject,
+  syncProjectTitle
+} from "./settings-workbench";
 import { ValidationPanel } from "./validation-panel";
 
 type NumericTokenField = {
@@ -108,24 +128,45 @@ function readNumberAtPath(project: PlaygroundProject, path: string[]): number {
 }
 
 export function App() {
-  const [project, setProject] = useState<PlaygroundProject>(
-    structuredClone(canonicalProjectFixture)
+  const [project, setProject] = useState<PlaygroundProject>(() =>
+    createSettingsStarterProject()
   );
-  const [newSectionType, setNewSectionType] = useState<SectionType>("form");
+  const [brief, setBrief] = useState(() => createInitialSettingsBrief());
+  const [activeBlueprintId, setActiveBlueprintId] = useState<string | null>(
+    defaultSettingsBlueprintId
+  );
+  const [newSectionType, setNewSectionType] = useState<SectionType>("settings");
   const [activeBreakpoint, setActiveBreakpoint] = useState<BreakpointName>("md");
   const [projectDirectoryHandle, setProjectDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
-    serializeProjectFingerprint(canonicalProjectFixture)
+    serializeProjectFingerprint(
+      createSettingsStarterProject(),
+      createInitialSettingsBrief()
+    )
   );
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
+  const [lastRepairOutcome, setLastRepairOutcome] =
+    useState<AppliedRepairOutcome | null>(null);
   const [notice, setNotice] = useState<ProjectNotice | null>({
     tone: "neutral",
-    message: "Editing the baseline fixture in memory."
+    message: "Editing a settings-focused starter candidate in memory."
   });
+
   const validationIssues = useMemo(() => collectValidationIssues(project), [project]);
+  const criticReport = useMemo(
+    () => evaluateSettingsScreen(project, brief),
+    [brief, project]
+  );
+  const generatedCandidates = useMemo(
+    () => generateSettingsCandidates(project, brief),
+    [brief, project]
+  );
   const supportsDirectoryPicker = canUseDirectoryPicker();
-  const currentFingerprint = useMemo(() => serializeProjectFingerprint(project), [project]);
+  const currentFingerprint = useMemo(
+    () => serializeProjectFingerprint(project, brief),
+    [brief, project]
+  );
   const previewLayout = useMemo(
     () => resolvePreviewLayout(project, activeBreakpoint),
     [project, activeBreakpoint]
@@ -139,6 +180,7 @@ export function App() {
   const projectName = projectDirectoryHandle?.name ?? "Untitled project";
 
   function dispatch(action: Parameters<typeof applyAction>[1]) {
+    setLastRepairOutcome(null);
     setProject((current) => applyAction(current, action));
   }
 
@@ -147,6 +189,84 @@ export function App() {
       setActiveBreakpoint(previewLayout.breakpoint);
     }
   }, [activeBreakpoint, configuredBreakpoints, previewLayout.breakpoint]);
+
+  function setBriefTitle(title: string) {
+    startTransition(() => {
+      setLastRepairOutcome(null);
+      setBrief((current) => ({
+        ...current,
+        title
+      }));
+      setProject((current) => syncProjectTitle(current, title));
+    });
+  }
+
+  function setBriefDensity(value: typeof brief.density) {
+    setLastRepairOutcome(null);
+    setBrief((current) => ({
+      ...current,
+      density: value
+    }));
+  }
+
+  function applySelectedBlueprint() {
+    const blueprint = settingsBlueprints.find((entry) => entry.id === activeBlueprintId);
+
+    if (!blueprint) {
+      return;
+    }
+
+    const selectedBlueprintId = blueprint.id;
+
+    startTransition(() => {
+      setLastRepairOutcome(null);
+      setProject((current) =>
+        applySettingsBlueprintToProject(current, brief, selectedBlueprintId)
+      );
+      setActiveBlueprintId(blueprint.id);
+      setNotice({
+        tone: "success",
+        message: `Applied the ${blueprint.name} blueprint to the current candidate.`
+      });
+    });
+  }
+
+  function loadGeneratedCandidate(candidate: GeneratedSettingsCandidate) {
+    const rank = generatedCandidates.findIndex(
+      (entry) => entry.blueprint.id === candidate.blueprint.id
+    );
+
+    startTransition(() => {
+      setLastRepairOutcome(null);
+      setProject(candidate.project);
+      setActiveBlueprintId(candidate.blueprint.id);
+      setNotice({
+        tone: "success",
+        message: `Loaded ranked candidate #${rank + 1}: ${candidate.blueprint.name}.`
+      });
+    });
+  }
+
+  function applySuggestedFix(fix: CriticSuggestedFix) {
+    const nextProject = applyCriticSuggestedFix(project, fix);
+    const nextReport = evaluateSettingsScreen(nextProject, brief);
+
+    startTransition(() => {
+      setProject(nextProject);
+      setLastRepairOutcome({
+        afterScore: nextReport.score,
+        afterVerdict: nextReport.verdict,
+        beforeScore: criticReport.score,
+        beforeVerdict: criticReport.verdict,
+        delta: nextReport.score - criticReport.score,
+        label: fix.label
+      });
+      setNotice({
+        tone: nextReport.score >= criticReport.score ? "success" : "neutral",
+        message: `Applied repair: ${fix.label}. Score ${criticReport.score} to ${nextReport.score}.`
+      });
+    });
+  }
 
   function setNumericToken(path: string[], value: number) {
     dispatch({ type: "setTokenValue", path, value });
@@ -233,13 +353,17 @@ export function App() {
   function applyLoadedProject(
     nextProject: PlaygroundProject,
     directoryHandle: FileSystemDirectoryHandle | null,
-    nextNotice: ProjectNotice
+    nextNotice: ProjectNotice,
+    nextBrief = deriveBriefFromProject(nextProject, brief)
   ) {
-    const fingerprint = serializeProjectFingerprint(nextProject);
+    const fingerprint = serializeProjectFingerprint(nextProject, nextBrief);
 
     startTransition(() => {
       setProject(nextProject);
+      setBrief(nextBrief);
       setProjectDirectoryHandle(directoryHandle);
+      setActiveBlueprintId(null);
+      setLastRepairOutcome(null);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
       setNotice(nextNotice);
@@ -247,10 +371,22 @@ export function App() {
   }
 
   function createFreshProject() {
-    const nextProject = createNewProject();
-    applyLoadedProject(nextProject, null, {
-      tone: "neutral",
-      message: "Started a new in-memory project from the canonical baseline."
+    const nextProject = createSettingsStarterProject();
+    const nextBrief = createInitialSettingsBrief();
+    const fingerprint = serializeProjectFingerprint(nextProject, nextBrief);
+
+    startTransition(() => {
+      setProject(nextProject);
+      setBrief(nextBrief);
+      setActiveBlueprintId(defaultSettingsBlueprintId);
+      setLastRepairOutcome(null);
+      setProjectDirectoryHandle(null);
+      setSavedFingerprint(fingerprint);
+      setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
+      setNotice({
+        tone: "neutral",
+        message: "Started a new settings candidate from the local starter baseline."
+      });
     });
   }
 
@@ -258,12 +394,20 @@ export function App() {
     await withBusyState("Opening project...", async () => {
       try {
         const directoryHandle = await promptForDirectory("open");
-        const nextProject = await loadProjectFromDirectoryHandle(directoryHandle);
+        const loadedState = await loadProjectFromDirectoryHandle(directoryHandle);
+        const nextBrief = loadedState.brief
+          ? loadedState.brief
+          : deriveBriefFromProject(loadedState.project, brief);
 
-        applyLoadedProject(nextProject, directoryHandle, {
-          tone: "success",
-          message: `Opened project from ${directoryHandle.name}.`
-        });
+        applyLoadedProject(
+          loadedState.project,
+          directoryHandle,
+          {
+            tone: "success",
+            message: `Opened project from ${directoryHandle.name}.`
+          },
+          nextBrief
+        );
       } catch (error) {
         if (isPickerAbort(error)) {
           setNotice({ tone: "neutral", message: "Open cancelled." });
@@ -285,7 +429,7 @@ export function App() {
           !saveAs && projectDirectoryHandle
             ? projectDirectoryHandle
             : await promptForDirectory("save");
-        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project);
+        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project, brief);
 
         setProjectDirectoryHandle(directoryHandle);
         setSavedFingerprint(currentFingerprint);
@@ -311,7 +455,7 @@ export function App() {
     await withBusyState("Exporting bundle...", async () => {
       try {
         const directoryHandle = await promptForDirectory("save");
-        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project);
+        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project, brief);
 
         setNotice({
           tone: "success",
@@ -335,9 +479,10 @@ export function App() {
     <main className="app-shell">
       <aside className="left-panel">
         <header className="panel-header">
-          <h1>UI System Playground</h1>
+          <h1>Settings Critic Workbench</h1>
           <p>
-            Model-driven controls for token, section, and export fundamentals.
+            Author a structured settings brief, edit one candidate, and score it
+            live against the critic rules.
             {busyLabel ? ` ${busyLabel}` : ""}
           </p>
         </header>
@@ -353,6 +498,20 @@ export function App() {
           onSave={() => saveProject(false)}
           onSaveAs={() => saveProject(true)}
           onExport={exportProject}
+        />
+
+        <SettingsBriefEditor
+          brief={brief}
+          onTitleChange={setBriefTitle}
+          onDensityChange={setBriefDensity}
+        />
+
+        <BlueprintLibraryPanel
+          activeBlueprintId={activeBlueprintId}
+          blueprints={settingsBlueprints}
+          brief={brief}
+          onApplyBlueprint={applySelectedBlueprint}
+          onBlueprintChange={setActiveBlueprintId}
         />
 
         <section className="panel-block">
@@ -474,6 +633,19 @@ export function App() {
           gutter={previewLayout.gutter}
           containerWidth={previewLayout.containerWidth}
           onBreakpointChange={setActiveBreakpoint}
+        />
+        <CandidateListPanel
+          activeBlueprintId={activeBlueprintId}
+          brief={brief}
+          candidates={generatedCandidates}
+          onLoadCandidate={loadGeneratedCandidate}
+        />
+        <CriticPanel
+          brief={brief}
+          lastRepairOutcome={lastRepairOutcome}
+          onApplySuggestedFix={applySuggestedFix}
+          project={project}
+          report={criticReport}
         />
         <PlaygroundPreview project={project} activeBreakpoint={previewLayout.breakpoint} />
       </section>

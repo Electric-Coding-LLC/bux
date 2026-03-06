@@ -36,7 +36,18 @@ describe("runCritic", () => {
           {
             severity: "high",
             message: "Table layouts should not drive a settings screen.",
-            path: "/page/sections/1"
+            path: "/page/sections/1",
+            suggestedFix: {
+              id: "settings.remove_table",
+              label: "Remove table",
+              description: "Drop the table section.",
+              actions: [
+                {
+                  type: "removeSection",
+                  sectionId: "sec-table-001"
+                }
+              ]
+            }
           }
         ]
       },
@@ -67,6 +78,7 @@ describe("runCritic", () => {
       "settings.table_misuse",
       "settings.label_repetition"
     ]);
+    expect(report.findings[0]?.suggestedFix?.id).toBe("settings.remove_table");
     expect(report.summary.severityCounts).toEqual({
       low: 1,
       medium: 0,

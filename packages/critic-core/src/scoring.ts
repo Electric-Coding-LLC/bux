@@ -3,6 +3,7 @@ import {
   type CriticFinding,
   type CriticFindingSeverity,
   type CriticReport,
+  type CriticSuggestedFix,
   type CriticVerdict,
   type PlaygroundProject,
   type ScreenBrief
@@ -17,6 +18,7 @@ export interface CriticRuleFinding {
   severity: CriticFindingSeverity;
   message: string;
   path: string;
+  suggestedFix?: CriticSuggestedFix;
 }
 
 export interface CriticRule<TBrief extends ScreenBrief = ScreenBrief> {
@@ -55,7 +57,8 @@ function toFinding<TBrief extends ScreenBrief>(
     code: rule.code,
     severity: finding.severity,
     message: finding.message,
-    path: finding.path
+    path: finding.path,
+    ...(finding.suggestedFix ? { suggestedFix: finding.suggestedFix } : {})
   };
 }
 

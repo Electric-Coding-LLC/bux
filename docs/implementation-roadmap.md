@@ -107,10 +107,31 @@ Do not add a second screen type until:
 
 1. Add critic model types and critic packages. Completed on 2026-03-05.
 2. Implement first `settings` rules and score aggregation. Completed on 2026-03-05.
-3. Add brief editor and critic panel to the playground.
-4. Add 5 authored `settings` blueprints.
-5. Generate multiple candidates from one brief.
-6. Add repair suggestions for top critic findings.
+3. Add brief editor and critic panel to the playground. Completed on 2026-03-06.
+   - Added a structured `settings` brief editor in `apps/playground`.
+   - Wired live `evaluateSettingsScreen()` scoring into the current playground candidate.
+   - Added a live critic panel showing score, verdict, and findings.
+   - Persisted the active brief as `brief.json` alongside the existing portable project bundle.
+   - Seeded the playground with a settings-focused starter candidate while keeping section editing explicit.
+4. Add 5 authored `settings` blueprints. Completed on 2026-03-06.
+   - Added `@bux/blueprint-library` with 5 deterministic `settings` blueprints and explicit metadata.
+   - Replaced the neutral settings starter with a blueprint-backed starter candidate.
+   - Added blueprint selection and apply flow to `apps/playground`.
+   - Extended the settings preview renderer so blueprint hierarchy differences are visible in the workbench.
+   - Added test coverage for blueprint validity, determinism, and critic outcomes.
+5. Generate multiple candidates from one brief. Completed on 2026-03-06.
+   - Added deterministic candidate generation from the current brief plus blueprint library.
+   - Ranked generated `settings` candidates by critic output and surfaced them as a live list in `apps/playground`.
+   - Allowed loading any ranked candidate into the editor while keeping generated candidates ephemeral and out of the portable project model.
+   - Added tests covering candidate determinism, density-aware blueprint selection, and ranking behavior.
+6. Add repair suggestions for top critic findings. Completed on 2026-03-06.
+   - Added structured suggested fixes to critic findings in the shared critic report model.
+   - Attached one-click deterministic repairs for high-value `settings` failures:
+     move settings to the top, merge fragmented settings panels, remove decorative drift,
+     normalize mixed variants, and restore missing semantic grouping.
+   - Wired repair application into `apps/playground` and reran the critic immediately after each repair.
+   - Added score delta feedback in the workbench so repair impact is visible.
+   - Added tests covering fix attachment, deterministic repair actions, and post-repair score improvement.
 
 ## Working Method
 

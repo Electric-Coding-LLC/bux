@@ -4,6 +4,7 @@ import {
   type PlaygroundProject,
   type SectionNode
 } from "@bux/core-model";
+import { applyActions } from "@bux/core-engine";
 import { describe, expect, it } from "bun:test";
 import { evaluateSettingsScreen } from "./evaluate-settings-screen";
 
@@ -101,6 +102,8 @@ describe("evaluateSettingsScreen", () => {
       "settings.table_misuse",
       "settings.variant_drift"
     ]);
+    expect(report.findings[0]?.suggestedFix?.id).toBe("settings.move_primary_to_top");
+    expect(report.findings[2]?.suggestedFix?.id).toBe("settings.remove_decorative_sections");
   });
 
   it("flags grouping and density problems for a noisy flat settings layout", () => {
@@ -134,6 +137,10 @@ describe("evaluateSettingsScreen", () => {
       "settings.missing_semantic_grouping",
       "settings.redundant_labels"
     ]);
+    expect(report.findings[1]?.suggestedFix?.id).toBe("settings.group_flat_sec-settings-001");
+    expect(report.findings[2]?.suggestedFix?.id).toBe(
+      "settings.split_group_sec-settings-001_1"
+    );
   });
 
   it("flags redundant surface nesting across multiple tiny grouped settings panels", () => {
@@ -154,5 +161,26 @@ describe("evaluateSettingsScreen", () => {
       "settings.density_mismatch",
       "settings.redundant_surface_nesting"
     ]);
+    expect(report.findings[0]?.suggestedFix?.id).toBe("settings.merge_shallow_panels");
+  });
+
+  it("applies a suggested fix and improves the critic score", () => {
+    const project = makeProject([
+      heroSection(),
+      settingsSection("sec-settings-001", "grouped", ["Profile", "Notifications"])
+    ]);
+    const firstReport = evaluateSettingsScreen(project, canonicalSettingsScreenBriefFixture);
+    const suggestedFix = firstReport.findings[0]?.suggestedFix;
+
+    expect(suggestedFix).toBeDefined();
+
+    const repairedProject = applyActions(project, suggestedFix?.actions ?? []);
+    const repairedReport = evaluateSettingsScreen(
+      repairedProject,
+      canonicalSettingsScreenBriefFixture
+    );
+
+    expect(repairedReport.score).toBeGreaterThan(firstReport.score);
+    expect(repairedProject.page.sections[0]?.type).toBe("settings");
   });
 });
