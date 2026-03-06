@@ -201,6 +201,11 @@ Do not add a second screen type until:
    - Updated the candidate panel to show a direct `Restore blueprint baseline` action whenever the active candidate has diverged from its loaded blueprint source.
    - Reused the existing candidate load flow so restoring the baseline also resets repair history and re-establishes the blueprint-backed editor state without changing ranking or export rules.
    - Added tests covering when baseline restore should and should not be offered from active-blueprint status.
+21. Persist blueprint provenance across save and open. Completed on 2026-03-06.
+   - Extended the playground workbench document in `apps/playground` so `brief.json` now persists the current active blueprint id alongside the structured settings brief.
+   - Updated project open/save flow to restore that active blueprint provenance into app state, preserving baseline status and restore-baseline behavior after reload.
+   - Included blueprint provenance in the project fingerprint so unsaved provenance changes are tracked consistently in the workbench.
+   - Added tests covering provenance serialization, backward compatibility with older `brief.json` files, and fingerprint changes when provenance differs.
 
 ## Working Method
 
