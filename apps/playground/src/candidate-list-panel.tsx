@@ -1,12 +1,19 @@
-import type { CriticVerdict, SettingsScreenBrief } from "@bux/core-model";
+import type { CriticReport, CriticVerdict, SettingsScreenBrief } from "@bux/core-model";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
-import { summarizeCandidateLeads } from "./candidate-triage";
+import {
+  summarizeCandidateLeads,
+  type WorkbenchStandingSummary
+} from "./candidate-triage";
+import type { ExportReadiness } from "./export-readiness";
 
 interface CandidateListPanelProps {
   activeBlueprintId: string | null;
+  activeExportReadiness: ExportReadiness;
+  activeReport: CriticReport;
   brief: SettingsScreenBrief;
   candidates: ReadonlyArray<GeneratedSettingsCandidate>;
   onLoadCandidate: (candidate: GeneratedSettingsCandidate) => void;
+  workbenchStanding: WorkbenchStandingSummary;
 }
 
 const verdictLabels: Record<CriticVerdict, string> = {
@@ -17,9 +24,12 @@ const verdictLabels: Record<CriticVerdict, string> = {
 
 export function CandidateListPanel({
   activeBlueprintId,
+  activeExportReadiness,
+  activeReport,
   brief,
   candidates,
-  onLoadCandidate
+  onLoadCandidate,
+  workbenchStanding
 }: CandidateListPanelProps) {
   const candidateLeads = summarizeCandidateLeads(candidates);
 
@@ -43,6 +53,22 @@ export function CandidateListPanel({
         </div>
         <span className="screen-type-chip">{brief.density}</span>
       </div>
+
+      <section className={`workbench-standing workbench-standing-${workbenchStanding.status}`}>
+        <div className="workbench-standing-header">
+          <h3>Workbench Standing</h3>
+          <span>{workbenchStanding.label}</span>
+        </div>
+        <p>{workbenchStanding.summary}</p>
+        <div className="workbench-standing-stats">
+          <span className={`candidate-verdict verdict-${activeReport.verdict}`}>
+            {verdictLabels[activeReport.verdict]}
+          </span>
+          <span>Score {activeReport.score}</span>
+          <span>{activeReport.findings.length} findings</span>
+          <span>{activeExportReadiness.canExport ? "Export ready" : "Blocked"}</span>
+        </div>
+      </section>
 
       <ol className="candidate-list">
         {candidates.map((candidate, index) => {

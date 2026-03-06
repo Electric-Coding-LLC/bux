@@ -4,7 +4,8 @@ import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import {
   summarizeBlockedCandidateGap,
   summarizeBlockedCandidateGapProgress,
-  summarizeCandidateLeads
+  summarizeCandidateLeads,
+  summarizeWorkbenchStanding
 } from "./candidate-triage";
 
 function makeCandidate(
@@ -196,5 +197,69 @@ describe("summarizeCandidateLeads", () => {
     expect(progress?.resolved).toBe(false);
     expect(progress?.exportReadyNow).toBe(false);
     expect(progress?.summary).toContain("did not reduce");
+  });
+});
+
+describe("summarizeWorkbenchStanding", () => {
+  it("marks the active candidate as strongest overall when it is export-ready and ahead", () => {
+    const standing = summarizeWorkbenchStanding(
+      makeCandidate("active", 96, true).report,
+      makeCandidate("active", 96, true).exportReadiness,
+      [
+        makeCandidate("top-blocked", 94, false),
+        makeCandidate("best-ready", 90, true)
+      ]
+    );
+
+    expect(standing.label).toBe("Strongest overall");
+    expect(standing.status).toBe("approved");
+    expect(standing.summary).toContain("matches or beats top-blocked");
+  });
+
+  it("marks the active candidate as highest score when it still cannot export", () => {
+    const standing = summarizeWorkbenchStanding(
+      makeCandidate("active", 96, false).report,
+      makeCandidate("active", 96, false).exportReadiness,
+      [
+        makeCandidate("top-blocked", 94, false),
+        makeCandidate("best-ready", 90, true)
+      ]
+    );
+
+    expect(standing.label).toBe("Highest score, still blocked");
+    expect(standing.status).toBe("blocked");
+    expect(standing.summary).toContain("export remains blocked");
+    expect(standing.summary).toContain("best-ready remains the current export-ready reference");
+  });
+
+  it("marks the active candidate as strongest export-ready when a blocked candidate still leads overall", () => {
+    const standing = summarizeWorkbenchStanding(
+      makeCandidate("active", 88, true).report,
+      makeCandidate("active", 88, true).exportReadiness,
+      [
+        makeCandidate("top-blocked", 94, false),
+        makeCandidate("best-ready", 86, true)
+      ]
+    );
+
+    expect(standing.label).toBe("Strongest export-ready");
+    expect(standing.status).toBe("approved");
+    expect(standing.summary).toContain("matches or beats best-ready");
+    expect(standing.summary).toContain("top-blocked still leads overall");
+  });
+
+  it("reports when no generated candidate has cleared export yet", () => {
+    const standing = summarizeWorkbenchStanding(
+      makeCandidate("active", 84, false).report,
+      makeCandidate("active", 84, false).exportReadiness,
+      [
+        makeCandidate("blocked-one", 90, false),
+        makeCandidate("blocked-two", 86, false)
+      ]
+    );
+
+    expect(standing.label).toBe("No export-ready reference yet");
+    expect(standing.status).toBe("blocked");
+    expect(standing.summary).toContain("no generated candidate has cleared export yet");
   });
 });

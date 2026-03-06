@@ -632,6 +632,90 @@ body {
   font-weight: 700;
 }
 
+.workbench-standing {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+}
+
+.workbench-standing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.workbench-standing-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.workbench-standing-header span {
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.workbench-standing p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.workbench-standing-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.workbench-standing-stats span {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e3a8a;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.workbench-standing-approved {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.workbench-standing-approved .workbench-standing-header span {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.workbench-standing-approved .workbench-standing-stats span {
+  color: #166534;
+}
+
+.workbench-standing-blocked {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.workbench-standing-blocked .workbench-standing-header span {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.workbench-standing-blocked .workbench-standing-stats span {
+  color: #9a3412;
+}
+
+.workbench-standing-neutral .workbench-standing-header span {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .candidate-list {
   list-style: none;
   margin: 0;

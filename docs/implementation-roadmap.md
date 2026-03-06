@@ -181,6 +181,11 @@ Do not add a second screen type until:
    - Simplified the critic panel so the latest repair is shown once and the repair history now only shows earlier repairs instead of repeating the most recent outcome.
    - Removed the redundant generic `No findings` success state when the panel is already in explicit approval mode after a successful repair.
    - Kept the underlying repair and approval data intact while reducing panel duplication.
+17. Show where the active workbench candidate stands against the generated field. Completed on 2026-03-06.
+   - Added explicit workbench-standing triage in `apps/playground` so the active edited candidate is compared against both the best overall and best export-ready generated references.
+   - Updated the candidate panel to surface that standing directly, including whether the current candidate is strongest overall, strongest export-ready, still blocked despite leading on score, or still chasing the field.
+   - Kept generated candidate ranking unchanged while making the active-candidate handoff from repair to export clearer.
+   - Added tests covering leading-approved, leading-but-blocked, strongest-export-ready, and no-export-ready-reference states.
 
 ## Working Method
 
