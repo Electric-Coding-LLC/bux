@@ -191,6 +191,11 @@ Do not add a second screen type until:
    - Updated the candidate panel to show a focused recommendation card with the approved reference candidate and a direct load action instead of forcing users to infer the next step from ranked badges alone.
    - Kept generated ranking and export gating unchanged while making the handoff from candidate comparison to candidate adoption explicit.
    - Added tests covering blocked-candidate fallback recommendations, stronger-approved-candidate recommendations, and the already-best-approved case.
+19. Show whether the active candidate still matches its blueprint baseline. Completed on 2026-03-06.
+   - Added explicit active-blueprint status triage in `apps/playground` so the workbench can tell whether the current editor state still matches the loaded blueprint baseline or has drifted away under the current brief.
+   - Updated the candidate panel to show an `Active Blueprint` status card that distinguishes unchanged approved baselines, unchanged blocked baselines, and customized/drifted candidates after edits.
+   - Kept candidate ranking, recommendation logic, and export gating unchanged while making post-load editing state visible.
+   - Added tests covering matching approved baselines, drifted blocked candidates, and customized candidates that improve past a blocked blueprint baseline.
 
 ## Working Method
 

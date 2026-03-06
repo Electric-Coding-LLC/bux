@@ -1,4 +1,9 @@
-import type { CriticReport } from "@bux/core-model";
+import {
+  type CriticReport,
+  type PlaygroundProject,
+  type SettingsScreenBrief
+} from "@bux/core-model";
+import { canonicalJSONStringify } from "@bux/exporter/browser";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import type { ExportReadiness } from "./export-readiness";
 
@@ -15,6 +20,13 @@ export interface WorkbenchStandingSummary {
 
 export interface CandidateRecommendation {
   actionLabel: string;
+  candidate: GeneratedSettingsCandidate;
+  label: string;
+  status: "approved" | "blocked";
+  summary: string;
+}
+
+export interface ActiveBlueprintStatusSummary {
   candidate: GeneratedSettingsCandidate;
   label: string;
   status: "approved" | "blocked";
@@ -205,6 +217,120 @@ export function summarizeCandidateRecommendation(
     summary: `${bestExportReady.blueprint.name} is currently the strongest export-ready candidate. Load it if you want the best approved option before exporting.${summarizeRecommendationContext(
       bestOverall,
       bestExportReady
+    )}`
+  };
+}
+
+function serializeCandidateSurface(
+  project: PlaygroundProject,
+  brief: SettingsScreenBrief
+): string {
+  return [
+    canonicalJSONStringify(project.tokens),
+    canonicalJSONStringify(project.page),
+    canonicalJSONStringify(project.constraints),
+    canonicalJSONStringify(brief)
+  ].join("\n");
+}
+
+function summarizeRelativeScore(scoreDelta: number): string {
+  if (scoreDelta > 0) {
+    return `${scoreDelta} points ahead`;
+  }
+
+  if (scoreDelta < 0) {
+    return `${Math.abs(scoreDelta)} points behind`;
+  }
+
+  return "matching the score";
+}
+
+function summarizeRelativeFindings(findingDelta: number): string {
+  if (findingDelta > 0) {
+    return `${findingDelta} more finding${findingDelta === 1 ? "" : "s"}`;
+  }
+
+  if (findingDelta < 0) {
+    const count = Math.abs(findingDelta);
+    return `${count} fewer finding${count === 1 ? "" : "s"}`;
+  }
+
+  return "the same finding count";
+}
+
+function summarizeRelativeExportStatus(
+  exportReadiness: ExportReadiness,
+  baseline: GeneratedSettingsCandidate
+): string {
+  if (exportReadiness.canExport && !baseline.exportReadiness.canExport) {
+    return "now clears export even though the baseline still does not.";
+  }
+
+  if (!exportReadiness.canExport && baseline.exportReadiness.canExport) {
+    return "no longer clears export while the baseline still does.";
+  }
+
+  if (exportReadiness.canExport) {
+    return "still clears export.";
+  }
+
+  return "still needs repair before export.";
+}
+
+export function summarizeActiveBlueprintStatus(
+  activeBlueprintId: string | null,
+  project: PlaygroundProject,
+  brief: SettingsScreenBrief,
+  report: CriticReport,
+  exportReadiness: ExportReadiness,
+  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+): ActiveBlueprintStatusSummary | null {
+  if (!activeBlueprintId) {
+    return null;
+  }
+
+  const candidate = candidates.find(
+    (entry) => entry.blueprint.id === activeBlueprintId
+  );
+
+  if (!candidate) {
+    return null;
+  }
+
+  const matchesBaseline =
+    serializeCandidateSurface(project, brief) ===
+    serializeCandidateSurface(candidate.project, brief);
+
+  if (matchesBaseline) {
+    if (candidate.exportReadiness.canExport) {
+      return {
+        candidate,
+        label: "Matching approved blueprint",
+        status: "approved",
+        summary: `${candidate.blueprint.name} is the active blueprint source, and the editor still matches that approved baseline exactly.`
+      };
+    }
+
+    return {
+      candidate,
+      label: "Matching blocked blueprint",
+      status: "blocked",
+      summary: `${candidate.blueprint.name} is the active blueprint source, and the editor still matches that current baseline, but it remains blocked for export.`
+    };
+  }
+
+  const scoreDelta = report.score - candidate.report.score;
+  const findingDelta = report.findings.length - candidate.report.findings.length;
+
+  return {
+    candidate,
+    label: exportReadiness.canExport ? "Customized from blueprint" : "Drifted from blueprint",
+    status: exportReadiness.canExport ? "approved" : "blocked",
+    summary: `The active editor state has diverged from the current ${candidate.blueprint.name} blueprint baseline. Compared with that baseline, it is ${summarizeRelativeScore(
+      scoreDelta
+    )}, has ${summarizeRelativeFindings(findingDelta)}, and ${summarizeRelativeExportStatus(
+      exportReadiness,
+      candidate
     )}`
   };
 }

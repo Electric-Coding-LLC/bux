@@ -702,6 +702,7 @@ export function App() {
         <CandidateListPanel
           activeBlueprintId={activeBlueprintId}
           activeExportReadiness={exportReadiness}
+          activeProject={project}
           activeReport={criticReport}
           brief={brief}
           candidates={generatedCandidates}
