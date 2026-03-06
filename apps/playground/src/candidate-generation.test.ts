@@ -26,6 +26,13 @@ describe("generateSettingsCandidates", () => {
     expect(candidates.every((candidate) => candidate.project.page.sections[0]?.type === "settings")).toBe(
       true
     );
+    expect(candidates.some((candidate) => candidate.exportReadiness.status === "approved")).toBe(
+      true
+    );
+    expect(
+      candidates.find((candidate) => candidate.blueprint.id === "quiet-zones")?.exportReadiness
+        .status
+    ).toBe("blocked");
   });
 
   it("prioritizes density-aligned blueprints before fallback options", () => {
@@ -53,5 +60,24 @@ describe("generateSettingsCandidates", () => {
       "dense-ops",
       "guided-rail"
     ]);
+  });
+
+  it("attaches export-readiness metadata to each generated candidate", () => {
+    const candidates = generateSettingsCandidates(
+      structuredClone(canonicalProjectFixture),
+      createInitialSettingsBrief()
+    );
+
+    const approvedCandidates = candidates.filter((candidate) => candidate.exportReadiness.canExport);
+    const blockedCandidates = candidates.filter((candidate) => !candidate.exportReadiness.canExport);
+
+    expect(approvedCandidates).toHaveLength(3);
+    expect(blockedCandidates).toHaveLength(1);
+    expect(approvedCandidates.every((candidate) => candidate.exportReadiness.summary === "Critic pass and export validation are both clear.")).toBe(
+      true
+    );
+    expect(blockedCandidates[0]?.blueprint.id).toBe("quiet-zones");
+    expect(blockedCandidates[0]?.exportReadiness.summary).toContain("Critic verdict is warn");
+    expect(blockedCandidates[0]?.exportReadiness.blockedReasons).toHaveLength(1);
   });
 });

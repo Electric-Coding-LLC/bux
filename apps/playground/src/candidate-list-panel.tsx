@@ -1,5 +1,6 @@
 import type { CriticVerdict, SettingsScreenBrief } from "@bux/core-model";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
+import { summarizeCandidateLeads } from "./candidate-triage";
 
 interface CandidateListPanelProps {
   activeBlueprintId: string | null;
@@ -20,6 +21,8 @@ export function CandidateListPanel({
   candidates,
   onLoadCandidate
 }: CandidateListPanelProps) {
+  const candidateLeads = summarizeCandidateLeads(candidates);
+
   return (
     <section className="candidate-panel">
       <div className="candidate-panel-header">
@@ -29,6 +32,14 @@ export function CandidateListPanel({
           <p className="candidate-panel-copy">
             Deterministic candidates generated from authored blueprints and scored with the current critic.
           </p>
+          <div className="candidate-lead-summary">
+            <span>
+              Best overall: {candidateLeads.bestOverall?.blueprint.name ?? "None"}
+            </span>
+            <span>
+              Best export-ready: {candidateLeads.bestExportReady?.blueprint.name ?? "None yet"}
+            </span>
+          </div>
         </div>
         <span className="screen-type-chip">{brief.density}</span>
       </div>
@@ -37,13 +48,31 @@ export function CandidateListPanel({
         {candidates.map((candidate, index) => {
           const isActive = candidate.blueprint.id === activeBlueprintId;
           const densityAligned = candidate.blueprint.densityEnvelope.includes(brief.density);
+          const isBestOverall =
+            candidateLeads.bestOverall?.blueprint.id === candidate.blueprint.id;
+          const isBestExportReady =
+            candidateLeads.bestExportReady?.blueprint.id === candidate.blueprint.id;
 
           return (
             <li key={candidate.blueprint.id} className={`candidate-card${isActive ? " active" : ""}`}>
               <div className="candidate-rank">
-                <strong>#{index + 1}</strong>
-                <span>{candidate.blueprint.name}</span>
+                <div className="candidate-rank-copy">
+                  <strong>#{index + 1}</strong>
+                  <span>{candidate.blueprint.name}</span>
+                </div>
+                <span
+                  className={`candidate-export-status candidate-export-status-${candidate.exportReadiness.status}`}
+                  title={candidate.exportReadiness.summary}
+                >
+                  {candidate.exportReadiness.status === "approved" ? "Export ready" : "Blocked"}
+                </span>
               </div>
+              {isBestOverall || isBestExportReady ? (
+                <div className="candidate-lead-badges">
+                  {isBestOverall ? <span>Best overall</span> : null}
+                  {isBestExportReady ? <span>Best export-ready</span> : null}
+                </div>
+              ) : null}
               <div className="candidate-stats">
                 <span className={`candidate-verdict verdict-${candidate.report.verdict}`}>
                   {verdictLabels[candidate.report.verdict]}
@@ -54,8 +83,24 @@ export function CandidateListPanel({
               </div>
               <p className="candidate-description">{candidate.blueprint.description}</p>
               <p className="candidate-intent">{candidate.blueprint.hierarchyIntent}</p>
+              <p
+                className={`candidate-export-summary candidate-export-summary-${candidate.exportReadiness.status}`}
+              >
+                {candidate.exportReadiness.summary}
+              </p>
+              {candidate.exportReadiness.blockedReasons.length > 0 ? (
+                <ul className="candidate-export-reasons">
+                  {candidate.exportReadiness.blockedReasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              ) : null}
               <button type="button" onClick={() => onLoadCandidate(candidate)}>
-                {isActive ? "Reload into editor" : "Load into editor"}
+                {isActive
+                  ? "Reload into editor"
+                  : candidate.exportReadiness.canExport
+                    ? "Load approved candidate"
+                    : "Load to repair"}
               </button>
             </li>
           );

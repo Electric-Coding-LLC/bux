@@ -3,15 +3,21 @@ import {
   type SettingsBlueprint
 } from "@bux/blueprint-library";
 import { evaluateSettingsScreen } from "@bux/critic-rules";
+import { collectValidationIssues } from "@bux/exporter/browser";
 import {
   type CriticReport,
   type PlaygroundProject,
   type SettingsScreenBrief
 } from "@bux/core-model";
+import {
+  evaluateExportReadiness,
+  type ExportReadiness
+} from "./export-readiness";
 import { applySettingsBlueprintToProject } from "./settings-workbench";
 
 export interface GeneratedSettingsCandidate {
   blueprint: SettingsBlueprint;
+  exportReadiness: ExportReadiness;
   project: PlaygroundProject;
   report: CriticReport;
 }
@@ -60,11 +66,16 @@ export function generateSettingsCandidates(
     .slice(0, maxCandidates)
     .map((blueprint) => {
       const project = applySettingsBlueprintToProject(baseProject, brief, blueprint.id);
+      const report = evaluateSettingsScreen(project, brief);
 
       return {
         blueprint,
+        exportReadiness: evaluateExportReadiness(
+          report,
+          collectValidationIssues(project)
+        ),
         project,
-        report: evaluateSettingsScreen(project, brief)
+        report
       };
     })
     .sort(compareCandidates);

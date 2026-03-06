@@ -6,7 +6,6 @@ import { applyAction } from "@bux/core-engine";
 import { evaluateSettingsScreen } from "@bux/critic-rules";
 import {
   type BreakpointName,
-  type CriticSuggestedFix,
   type DensityMode,
   type PlaygroundProject,
   type SectionType,
@@ -21,11 +20,18 @@ import { BlueprintLibraryPanel } from "./blueprint-library-panel";
 import { generateSettingsCandidates, type GeneratedSettingsCandidate } from "./candidate-generation";
 import { CandidateListPanel } from "./candidate-list-panel";
 import {
-  applyCriticSuggestedFix,
-  type AppliedRepairOutcome
+  summarizeBlockedCandidateGap,
+  summarizeBlockedCandidateGapProgress
+} from "./candidate-triage";
+import {
+  createRepairHistoryEntry,
+  prepareFindingRepairStates,
+  type FindingRepairState,
+  type RepairHistoryEntry
 } from "./critic-repair";
 import { ConstraintsEditor } from "./constraints-editor";
 import { CriticPanel } from "./critic-panel";
+import { evaluateExportReadiness } from "./export-readiness";
 import {
   canUseDirectoryPicker,
   isPickerAbort,
@@ -37,6 +43,7 @@ import {
 } from "./project-io";
 import { PreviewControls } from "./preview-controls";
 import { ProjectToolbar, type ProjectNotice } from "./project-toolbar";
+import { prioritizeBlockedCandidateRepairs } from "./repair-targeting";
 import { SectionEditor, type SectionChanges } from "./section-editor";
 import { SectionRulesEditor } from "./section-rules-editor";
 import { SettingsBriefEditor } from "./settings-brief-editor";
@@ -146,8 +153,7 @@ export function App() {
     )
   );
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
-  const [lastRepairOutcome, setLastRepairOutcome] =
-    useState<AppliedRepairOutcome | null>(null);
+  const [repairHistory, setRepairHistory] = useState<RepairHistoryEntry[]>([]);
   const [notice, setNotice] = useState<ProjectNotice | null>({
     tone: "neutral",
     message: "Editing a settings-focused starter candidate in memory."
@@ -161,6 +167,27 @@ export function App() {
   const generatedCandidates = useMemo(
     () => generateSettingsCandidates(project, brief),
     [brief, project]
+  );
+  const exportReadiness = useMemo(
+    () => evaluateExportReadiness(criticReport, validationIssues),
+    [criticReport, validationIssues]
+  );
+  const blockedCandidateGap = useMemo(
+    () =>
+      summarizeBlockedCandidateGap(
+        criticReport,
+        exportReadiness,
+        generatedCandidates
+      ),
+    [criticReport, exportReadiness, generatedCandidates]
+  );
+  const findingRepairs = useMemo(
+    () => prepareFindingRepairStates(project, brief, criticReport),
+    [brief, criticReport, project]
+  );
+  const prioritizedRepairs = useMemo(
+    () => prioritizeBlockedCandidateRepairs(findingRepairs, blockedCandidateGap).slice(0, 3),
+    [blockedCandidateGap, findingRepairs]
   );
   const supportsDirectoryPicker = canUseDirectoryPicker();
   const currentFingerprint = useMemo(
@@ -180,7 +207,6 @@ export function App() {
   const projectName = projectDirectoryHandle?.name ?? "Untitled project";
 
   function dispatch(action: Parameters<typeof applyAction>[1]) {
-    setLastRepairOutcome(null);
     setProject((current) => applyAction(current, action));
   }
 
@@ -192,7 +218,7 @@ export function App() {
 
   function setBriefTitle(title: string) {
     startTransition(() => {
-      setLastRepairOutcome(null);
+      setRepairHistory([]);
       setBrief((current) => ({
         ...current,
         title
@@ -202,7 +228,7 @@ export function App() {
   }
 
   function setBriefDensity(value: typeof brief.density) {
-    setLastRepairOutcome(null);
+    setRepairHistory([]);
     setBrief((current) => ({
       ...current,
       density: value
@@ -219,7 +245,7 @@ export function App() {
     const selectedBlueprintId = blueprint.id;
 
     startTransition(() => {
-      setLastRepairOutcome(null);
+      setRepairHistory([]);
       setProject((current) =>
         applySettingsBlueprintToProject(current, brief, selectedBlueprintId)
       );
@@ -237,7 +263,7 @@ export function App() {
     );
 
     startTransition(() => {
-      setLastRepairOutcome(null);
+      setRepairHistory([]);
       setProject(candidate.project);
       setActiveBlueprintId(candidate.blueprint.id);
       setNotice({
@@ -247,23 +273,43 @@ export function App() {
     });
   }
 
-  function applySuggestedFix(fix: CriticSuggestedFix) {
-    const nextProject = applyCriticSuggestedFix(project, fix);
-    const nextReport = evaluateSettingsScreen(nextProject, brief);
+  function applySuggestedFix(repair: FindingRepairState) {
+    if (repair.status !== "actionable") {
+      setNotice({
+        tone: "neutral",
+        message: repair.helperText
+      });
+      return;
+    }
+
+    const nextGeneratedCandidates = generateSettingsCandidates(repair.nextProject, brief);
+    const nextBlockedCandidateGap = summarizeBlockedCandidateGap(
+      repair.nextReport,
+      repair.nextExportReadiness,
+      nextGeneratedCandidates
+    );
+    const gapProgress = summarizeBlockedCandidateGapProgress(
+      blockedCandidateGap,
+      nextBlockedCandidateGap
+    );
+    const historyEntry = createRepairHistoryEntry(repair, gapProgress);
 
     startTransition(() => {
-      setProject(nextProject);
-      setLastRepairOutcome({
-        afterScore: nextReport.score,
-        afterVerdict: nextReport.verdict,
-        beforeScore: criticReport.score,
-        beforeVerdict: criticReport.verdict,
-        delta: nextReport.score - criticReport.score,
-        label: fix.label
-      });
+      setProject(repair.nextProject);
+      setRepairHistory((current) => [historyEntry, ...current].slice(0, 6));
       setNotice({
-        tone: nextReport.score >= criticReport.score ? "success" : "neutral",
-        message: `Applied repair: ${fix.label}. Score ${criticReport.score} to ${nextReport.score}.`
+        tone: repair.nextReport.score >= criticReport.score ? "success" : "neutral",
+        message: `Applied repair: ${repair.label}. Score ${criticReport.score} to ${
+          repair.nextReport.score
+        }, cleared ${historyEntry.resolvedFindings} finding${
+          historyEntry.resolvedFindings === 1 ? "" : "s"
+        }.${
+          gapProgress
+            ? gapProgress.exportReadyNow
+              ? " Export-ready now."
+              : ` ${gapProgress.summary}`
+            : ""
+        }`
       });
     });
   }
@@ -363,7 +409,7 @@ export function App() {
       setBrief(nextBrief);
       setProjectDirectoryHandle(directoryHandle);
       setActiveBlueprintId(null);
-      setLastRepairOutcome(null);
+      setRepairHistory([]);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
       setNotice(nextNotice);
@@ -379,7 +425,7 @@ export function App() {
       setProject(nextProject);
       setBrief(nextBrief);
       setActiveBlueprintId(defaultSettingsBlueprintId);
-      setLastRepairOutcome(null);
+      setRepairHistory([]);
       setProjectDirectoryHandle(null);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
@@ -452,6 +498,14 @@ export function App() {
   }
 
   async function exportProject() {
+    if (!exportReadiness.canExport) {
+      setNotice({
+        tone: "error",
+        message: `Export blocked. ${exportReadiness.summary}`
+      });
+      return;
+    }
+
     await withBusyState("Exporting bundle...", async () => {
       try {
         const directoryHandle = await promptForDirectory("save");
@@ -488,6 +542,7 @@ export function App() {
         </header>
 
         <ProjectToolbar
+          exportReadiness={exportReadiness}
           projectName={projectName}
           isDirty={isDirty}
           isBusy={busyLabel !== null}
@@ -641,10 +696,13 @@ export function App() {
           onLoadCandidate={loadGeneratedCandidate}
         />
         <CriticPanel
+          blockedCandidateGap={blockedCandidateGap}
           brief={brief}
-          lastRepairOutcome={lastRepairOutcome}
+          findingRepairs={findingRepairs}
           onApplySuggestedFix={applySuggestedFix}
           project={project}
+          prioritizedRepairs={prioritizedRepairs}
+          repairHistory={repairHistory}
           report={criticReport}
         />
         <PlaygroundPreview project={project} activeBreakpoint={previewLayout.breakpoint} />

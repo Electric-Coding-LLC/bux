@@ -132,6 +132,55 @@ Do not add a second screen type until:
    - Wired repair application into `apps/playground` and reran the critic immediately after each repair.
    - Added score delta feedback in the workbench so repair impact is visible.
    - Added tests covering fix attachment, deterministic repair actions, and post-repair score improvement.
+7. Harden the `settings` repair loop workbench flow. Completed on 2026-03-06.
+   - Added explicit repair applicability state in `apps/playground` so findings now show actionable repairs, unavailable automated repairs, and stale/no-op repair states instead of silently omitting buttons.
+   - Added lightweight in-memory repair history for the current active candidate, including score deltas, verdict transitions, and remaining finding counts after each applied repair.
+   - Improved post-repair visibility in the critic panel so the latest repair outcome and recent repair sequence stay visible while the candidate remains active in the workbench.
+   - Added playground-facing tests covering actionable repair application, non-actionable findings with no automated fix, and stale/no-op repair disablement.
+8. Gate export on `settings` candidate approval. Completed on 2026-03-06.
+   - Added explicit export-readiness evaluation in `apps/playground` that combines critic verdict and export validation state into a single approved-or-blocked decision for the active candidate.
+   - Updated the project toolbar to show approval status, a concise approval summary, and concrete blocking reasons when the candidate is not ready to export.
+   - Disabled export for candidates that have not cleared the critic bar or still fail export validation, and guarded the export action itself with the same rule.
+   - Added tests covering clean approval, critic-only blocking, validation-only blocking, and combined blocking states.
+9. Add export-readiness triage to generated `settings` candidates. Completed on 2026-03-06.
+   - Extended generated candidate metadata in `apps/playground` so each ranked candidate now includes the same export-readiness decision used by the active workbench candidate.
+   - Updated the candidate list to show export-ready versus blocked status directly in the ranked cards, along with concise blocking summaries before a candidate is loaded into the editor.
+   - Adjusted load-button copy so the workbench clearly distinguishes approved candidates from candidates that still need repair work.
+   - Added tests covering candidate-level export-readiness metadata, including the current mix of approved and blocked generated `settings` candidates.
+10. Separate “best overall” from “best export-ready” in generated candidate triage. Completed on 2026-03-06.
+   - Added explicit candidate lead summarization in `apps/playground` so the workbench can identify the top-ranked candidate independently from the strongest currently exportable candidate.
+   - Updated the candidate list header and cards to show those lead roles directly, including per-card badges when a candidate leads one or both tracks.
+   - Kept the existing score-based ranking intact so blocked but high-scoring candidates remain visible while no longer competing ambiguously with approved candidates.
+   - Added tests covering best-overall selection, best-export-ready selection, and the fully blocked candidate case.
+11. Show blocked-candidate repair gaps against the best export-ready reference. Completed on 2026-03-06.
+   - Added explicit blocked-candidate gap summarization in `apps/playground` so the active candidate can be compared against the current strongest export-ready reference without manual card-by-card inspection.
+   - Updated the critic panel to show a repair target card with the reference candidate, score gap, finding gap, and current blocking reasons whenever the active candidate is still blocked.
+   - Kept the comparison lightweight and in-memory only, with no new persistence or ranking changes.
+   - Added tests covering blocked-gap summaries, already-approved candidates, and the no-reference-available case.
+12. Prioritize repairs that most directly close the export blocker gap. Completed on 2026-03-06.
+   - Added explicit repair-targeting logic in `apps/playground` to rank actionable repairs by whether they clear export blocking outright, then by how much they close the current score and findings gap to the best export-ready reference.
+   - Updated the critic panel to show a dedicated `Priority Repairs` section ahead of the raw findings list, giving the shortest repair path back to exportable state.
+   - Kept the raw findings list intact so the full critic output is still visible after the targeted recommendations.
+   - Added tests covering export-clearing repair priority, gap-closing priority, and the no-blocked-reference case.
+13. Show whether applied repairs actually reduce the blocker gap. Completed on 2026-03-06.
+   - Added blocked-gap progress summarization in `apps/playground` so a repair can be evaluated against the previously identified export-ready reference gap, not only against raw score deltas.
+   - Updated repair application flow to compute the post-repair blocker gap immediately and store the resulting gap-progress summary in in-memory repair history.
+   - Surfaced that gap-progress summary in the latest repair outcome and repair history UI so the workbench now shows whether a chosen repair actually moved the candidate toward exportable state.
+   - Added tests covering full blocker-gap clearance, partial gap reduction, and repairs that do not reduce the current gap.
+14. Promote repairs that make the candidate export-ready now. Completed on 2026-03-06.
+   - Extended blocked-gap progress state in `apps/playground` to mark the exact case where a repair clears the blocker gap completely and leaves no remaining repair target.
+   - Updated repair feedback in the playground to show an explicit `Export-ready now` state in the latest repair banner, repair history, and repair notice copy instead of relying on users to infer it from separate workbench panels.
+   - Kept the rest of the repair history model and export gating intact.
+   - Added tests covering the new explicit export-ready-now repair outcome state.
+15. Shift the critic panel into approval mode after a successful repair. Completed on 2026-03-06.
+   - Added explicit critic-panel state logic in `apps/playground` so approval-mode UI only appears when the latest repair actually completed the transition to export-ready state and blocker-specific guidance is gone.
+   - Updated the critic panel to show an `Approved Candidate` card once a repair moves the candidate out of repair mode, making the handoff from repair to export explicit in the same panel.
+   - Kept blocker-specific repair guidance hidden once approval-mode conditions are met.
+   - Added tests covering when the critic panel should and should not switch into approval mode.
+16. Consolidate overlapping repair and approval messaging in the critic panel. Completed on 2026-03-06.
+   - Simplified the critic panel so the latest repair is shown once and the repair history now only shows earlier repairs instead of repeating the most recent outcome.
+   - Removed the redundant generic `No findings` success state when the panel is already in explicit approval mode after a successful repair.
+   - Kept the underlying repair and approval data intact while reducing panel duplication.
 
 ## Working Method
 
