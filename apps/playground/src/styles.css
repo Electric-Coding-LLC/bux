@@ -139,6 +139,62 @@ body {
   color: #92400e;
 }
 
+.status-chip.status-chip-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-chip.status-chip-blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.export-readiness {
+  margin-top: 0.8rem;
+  border-radius: 12px;
+  padding: 0.8rem 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.export-readiness-approved {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+}
+
+.export-readiness-blocked {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.export-readiness-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.export-readiness-header strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.export-readiness p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.export-readiness-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.22rem;
+  color: #7c2d12;
+  font-size: 0.8rem;
+}
+
 .project-note {
   margin: 0.75rem 0 0;
   font-size: 0.82rem;
@@ -560,6 +616,22 @@ body {
   font-size: 0.88rem;
 }
 
+.candidate-lead-summary {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.candidate-lead-summary span {
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0c4a6e;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .candidate-list {
   list-style: none;
   margin: 0;
@@ -584,6 +656,13 @@ body {
 
 .candidate-rank {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.candidate-rank-copy {
+  display: flex;
   align-items: center;
   gap: 0.65rem;
 }
@@ -595,6 +674,39 @@ body {
 .candidate-rank span {
   font-weight: 700;
   color: #0f172a;
+}
+
+.candidate-export-status {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.candidate-export-status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.candidate-export-status-blocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.candidate-lead-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.candidate-lead-badges span {
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.25rem 0.52rem;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .candidate-stats {
@@ -637,6 +749,29 @@ body {
 
 .candidate-intent {
   color: #0f172a;
+}
+
+.candidate-export-summary {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.candidate-export-summary-approved {
+  color: #166534;
+}
+
+.candidate-export-summary-blocked {
+  color: #9a3412;
+}
+
+.candidate-export-reasons {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.18rem;
+  color: #7c2d12;
+  font-size: 0.78rem;
 }
 
 .candidate-card button {
@@ -745,8 +880,38 @@ body {
   margin: 0;
   padding: 0.75rem 0.85rem;
   border-radius: 12px;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.repair-outcome strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.repair-outcome p,
+.repair-outcome span {
+  margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
+}
+
+.repair-gap-progress {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.repair-ready-chip {
+  justify-self: start;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  padding: 0.24rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .repair-outcome.positive {
@@ -757,6 +922,264 @@ body {
 .repair-outcome.negative {
   background: #fef2f2;
   color: #991b1b;
+}
+
+.repair-history {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+}
+
+.repair-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.repair-history-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.repair-history-header span {
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.repair-history-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.repair-history-list li {
+  display: grid;
+  gap: 0.15rem;
+  color: #334155;
+}
+
+.repair-history-list strong {
+  font-size: 0.84rem;
+  color: #0f172a;
+}
+
+.repair-history-list span {
+  font-size: 0.8rem;
+}
+
+.candidate-gap {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+.candidate-gap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.candidate-gap-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.candidate-gap-header span {
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.candidate-gap p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.candidate-gap-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.candidate-gap-stats span {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e3a8a;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.candidate-gap-reasons {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.2rem;
+  color: #92400e;
+  font-size: 0.78rem;
+}
+
+.priority-repairs {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #a7f3d0;
+  background: #f0fdf4;
+}
+
+.priority-repairs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.priority-repairs-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.priority-repairs-header span {
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #047857;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.priority-repairs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.priority-repairs-list li {
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  padding: 0.75rem 0.8rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.priority-repair-copy {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.priority-repair-copy strong {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.priority-repair-copy p,
+.priority-repair-copy span {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.priority-repair-copy p {
+  color: #166534;
+}
+
+.priority-repair-copy span {
+  color: #475569;
+}
+
+.priority-repairs-list button {
+  flex-shrink: 0;
+  border: 1px solid #0f766e;
+  background: #ffffff;
+  color: #0f766e;
+  border-radius: 999px;
+  padding: 0.42rem 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.priority-repairs-list button:hover {
+  background: #f0fdfa;
+}
+
+.approval-state {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+}
+
+.approval-state-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.approval-state-header h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.approval-state-header span {
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.approval-state p {
+  margin: 0;
+  color: #166534;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.approval-state-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.approval-state-stats span {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #166534;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .critic-clear {
@@ -839,10 +1262,24 @@ body {
   padding-top: 0.15rem;
 }
 
+.critic-fix-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
 .critic-fix span {
   color: #475569;
   font-size: 0.82rem;
   line-height: 1.4;
+}
+
+.critic-fix-projection {
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.critic-fix-disabled .critic-fix-projection {
+  color: #64748b;
 }
 
 .critic-fix button {
@@ -858,6 +1295,13 @@ body {
 
 .critic-fix button:hover {
   background: #f0fdfa;
+}
+
+.critic-fix button:disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .preview-stats {
