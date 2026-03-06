@@ -21,6 +21,7 @@ import { generateSettingsCandidates, type GeneratedSettingsCandidate } from "./c
 import { CandidateListPanel } from "./candidate-list-panel";
 import {
   summarizeBlockedCandidateGap,
+  summarizeWorkbenchStanding,
   summarizeBlockedCandidateGapProgress
 } from "./candidate-triage";
 import {
@@ -175,6 +176,15 @@ export function App() {
   const blockedCandidateGap = useMemo(
     () =>
       summarizeBlockedCandidateGap(
+        criticReport,
+        exportReadiness,
+        generatedCandidates
+      ),
+    [criticReport, exportReadiness, generatedCandidates]
+  );
+  const workbenchStanding = useMemo(
+    () =>
+      summarizeWorkbenchStanding(
         criticReport,
         exportReadiness,
         generatedCandidates
@@ -691,9 +701,12 @@ export function App() {
         />
         <CandidateListPanel
           activeBlueprintId={activeBlueprintId}
+          activeExportReadiness={exportReadiness}
+          activeReport={criticReport}
           brief={brief}
           candidates={generatedCandidates}
           onLoadCandidate={loadGeneratedCandidate}
+          workbenchStanding={workbenchStanding}
         />
         <CriticPanel
           blockedCandidateGap={blockedCandidateGap}
