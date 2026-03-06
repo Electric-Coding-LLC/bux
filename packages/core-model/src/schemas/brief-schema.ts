@@ -1,4 +1,5 @@
 import {
+  dashboardScreenDensities,
   marketingLandingScreenDensities,
   onboardingScreenDensities,
   settingsScreenDensities
@@ -39,6 +40,17 @@ export const briefSchema = {
         screenType: { const: "marketingLanding" },
         title: { type: "string", minLength: 1 },
         density: { type: "string", enum: [...marketingLandingScreenDensities] }
+      }
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["schemaVersion", "screenType", "title", "density"],
+      properties: {
+        schemaVersion: { type: "string", minLength: 1 },
+        screenType: { const: "dashboard" },
+        title: { type: "string", minLength: 1 },
+        density: { type: "string", enum: [...dashboardScreenDensities] }
       }
     }
   ]

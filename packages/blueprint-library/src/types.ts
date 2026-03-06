@@ -1,4 +1,5 @@
 import type {
+  DashboardScreenBrief,
   MarketingLandingScreenBrief,
   OnboardingScreenBrief,
   PageDocument,
@@ -23,7 +24,9 @@ export type SettingsBlueprint = ScreenBlueprintBase<SettingsScreenBrief>;
 export type OnboardingBlueprint = ScreenBlueprintBase<OnboardingScreenBrief>;
 export type MarketingLandingBlueprint =
   ScreenBlueprintBase<MarketingLandingScreenBrief>;
+export type DashboardBlueprint = ScreenBlueprintBase<DashboardScreenBrief>;
 export type ScreenBlueprint =
   | SettingsBlueprint
   | OnboardingBlueprint
-  | MarketingLandingBlueprint;
+  | MarketingLandingBlueprint
+  | DashboardBlueprint;

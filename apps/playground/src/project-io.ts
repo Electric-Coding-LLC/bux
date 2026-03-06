@@ -2,6 +2,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   canonicalProjectFixture,
   canonicalSettingsScreenBriefFixture,
+  type DashboardScreenBrief,
   migrateProjectFilesToCurrentSchema,
   type MarketingLandingScreenBrief,
   type OnboardingScreenBrief,
@@ -90,6 +91,12 @@ function isMarketingLandingDensity(
   return value === "editorial" || value === "focused" || value === "launch";
 }
 
+function isDashboardDensity(
+  value: unknown
+): value is DashboardScreenBrief["density"] {
+  return value === "executive" || value === "operational" || value === "focused";
+}
+
 function parseActiveBlueprintId(value: unknown): string | null {
   if (value === undefined || value === null) {
     return null;
@@ -112,10 +119,11 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
   if (
     screenType !== "settings" &&
     screenType !== "onboarding" &&
-    screenType !== "marketingLanding"
+    screenType !== "marketingLanding" &&
+    screenType !== "dashboard"
   ) {
     throw new Error(
-      'brief.json screenType must be "settings", "onboarding", or "marketingLanding".'
+      'brief.json screenType must be "settings", "onboarding", "marketingLanding", or "dashboard".'
     );
   }
 
@@ -123,13 +131,15 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
     throw new Error("brief.json title must be a non-empty string.");
   }
 
+  const activeBlueprintId = parseActiveBlueprintId(value.activeBlueprintId);
+
   if (screenType === "settings") {
     if (!isSettingsDensity(value.density)) {
       throw new Error('brief.json density must be "comfortable", "compact", or "calm" for settings.');
     }
 
     return {
-      activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+      activeBlueprintId,
       brief: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         screenType,
@@ -139,17 +149,15 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
     };
   }
 
-  if (!isOnboardingDensity(value.density)) {
-    if (screenType === "onboarding") {
+  if (screenType === "onboarding") {
+    if (!isOnboardingDensity(value.density)) {
       throw new Error(
         'brief.json density must be "guided", "focused", or "compact" for onboarding.'
       );
     }
-  }
 
-  if (screenType === "onboarding") {
     return {
-      activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+      activeBlueprintId,
       brief: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         screenType,
@@ -159,19 +167,37 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
     };
   }
 
-  if (!isMarketingLandingDensity(value.density)) {
+  if (screenType === "marketingLanding") {
+    if (!isMarketingLandingDensity(value.density)) {
+      throw new Error(
+        'brief.json density must be "editorial", "focused", or "launch" for marketingLanding.'
+      );
+    }
+
+    return {
+      activeBlueprintId,
+      brief: {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        screenType,
+        title: value.title,
+        density: value.density as MarketingLandingScreenBrief["density"]
+      }
+    };
+  }
+
+  if (!isDashboardDensity(value.density)) {
     throw new Error(
-      'brief.json density must be "editorial", "focused", or "launch" for marketingLanding.'
+      'brief.json density must be "executive", "operational", or "focused" for dashboard.'
     );
   }
 
   return {
-    activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+    activeBlueprintId,
     brief: {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       screenType,
       title: value.title,
-      density: value.density as MarketingLandingScreenBrief["density"]
+      density: value.density as DashboardScreenBrief["density"]
     }
   };
 }

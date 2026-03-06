@@ -1,4 +1,5 @@
 import type {
+  DashboardScreenDensity,
   MarketingLandingDensity,
   OnboardingScreenDensity,
   ScreenBrief,
@@ -9,7 +10,11 @@ import type {
 interface ScreenBriefEditorProps {
   brief: ScreenBrief;
   onDensityChange: (
-    density: MarketingLandingDensity | OnboardingScreenDensity | SettingsScreenDensity
+    density:
+      | DashboardScreenDensity
+      | MarketingLandingDensity
+      | OnboardingScreenDensity
+      | SettingsScreenDensity
   ) => void;
   onScreenTypeChange: (screenType: ScreenType) => void;
   onTitleChange: (title: string) => void;
@@ -81,33 +86,72 @@ const marketingLandingDensityOptions: Array<{
   }
 ];
 
+const dashboardDensityOptions: Array<{
+  value: DashboardScreenDensity;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "executive",
+    label: "Executive",
+    description: "Lead with a concise pulse and keep deeper monitoring surfaces secondary."
+  },
+  {
+    value: "operational",
+    label: "Operational",
+    description: "Expose one clear queue so teams can act directly from the dashboard."
+  },
+  {
+    value: "focused",
+    label: "Focused",
+    description: "Keep the dashboard to one summary band and one follow-up surface."
+  }
+];
+
+const densityOptionsByScreenType = {
+  settings: settingsDensityOptions,
+  onboarding: onboardingDensityOptions,
+  marketingLanding: marketingLandingDensityOptions,
+  dashboard: dashboardDensityOptions
+} satisfies Record<
+  ScreenType,
+  ReadonlyArray<{
+    value: ScreenBrief["density"];
+    label: string;
+    description: string;
+  }>
+>;
+
+const headings: Record<ScreenType, string> = {
+  settings: "Settings Brief",
+  onboarding: "Onboarding Brief",
+  marketingLanding: "Marketing Brief",
+  dashboard: "Dashboard Brief"
+};
+
+const captions: Record<ScreenType, string> = {
+  settings: "Live input for the current `settings` candidate.",
+  onboarding: "Live input for the current `onboarding` candidate.",
+  marketingLanding: "Live input for the current `marketingLanding` candidate.",
+  dashboard: "Live input for the current `dashboard` candidate."
+};
+
+const screenTypeLabels: Record<ScreenType, string> = {
+  settings: "settings",
+  onboarding: "onboarding",
+  marketingLanding: "marketing",
+  dashboard: "dashboard"
+};
+
 export function ScreenBriefEditor({
   brief,
   onDensityChange,
   onScreenTypeChange,
   onTitleChange
 }: ScreenBriefEditorProps) {
-  const densityOptions =
-    brief.screenType === "settings"
-      ? settingsDensityOptions
-      : brief.screenType === "onboarding"
-        ? onboardingDensityOptions
-        : marketingLandingDensityOptions;
-  const heading = {
-    settings: "Settings Brief",
-    onboarding: "Onboarding Brief",
-    marketingLanding: "Marketing Brief"
-  }[brief.screenType];
-  const caption = {
-    settings: "Live input for the current `settings` candidate.",
-    onboarding: "Live input for the current `onboarding` candidate.",
-    marketingLanding: "Live input for the current `marketingLanding` candidate."
-  }[brief.screenType];
-  const screenTypeLabels: Record<ScreenType, string> = {
-    settings: "settings",
-    onboarding: "onboarding",
-    marketingLanding: "marketing"
-  };
+  const densityOptions = densityOptionsByScreenType[brief.screenType];
+  const heading = headings[brief.screenType];
+  const caption = captions[brief.screenType];
 
   return (
     <section className="panel-block">
@@ -120,7 +164,7 @@ export function ScreenBriefEditor({
       </div>
 
       <div className="screen-type-switch" role="tablist" aria-label="Screen type">
-        {(["settings", "onboarding", "marketingLanding"] as const).map((screenType) => {
+        {(["settings", "onboarding", "marketingLanding", "dashboard"] as const).map((screenType) => {
           const selected = screenType === brief.screenType;
 
           return (

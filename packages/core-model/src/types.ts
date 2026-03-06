@@ -4,10 +4,15 @@ export type BreakpointName = "xs" | "sm" | "md" | "lg" | "xl";
 export type DensityMode = "comfortable" | "compact";
 export type StressCopyMode = "short" | "long";
 export type StressStateMode = "default" | "empty" | "loading" | "error";
-export type ScreenType = "settings" | "onboarding" | "marketingLanding";
+export type ScreenType =
+  | "settings"
+  | "onboarding"
+  | "marketingLanding"
+  | "dashboard";
 export type SettingsScreenDensity = DensityMode | "calm";
 export type OnboardingScreenDensity = "guided" | "focused" | "compact";
 export type MarketingLandingDensity = "editorial" | "focused" | "launch";
+export type DashboardScreenDensity = "executive" | "operational" | "focused";
 export type CriticFindingSeverity = "low" | "medium" | "high";
 export type CriticVerdict = "pass" | "warn" | "fail";
 export type SectionType =
@@ -136,10 +141,18 @@ export interface MarketingLandingScreenBrief {
   density: MarketingLandingDensity;
 }
 
+export interface DashboardScreenBrief {
+  schemaVersion: string;
+  screenType: "dashboard";
+  title: string;
+  density: DashboardScreenDensity;
+}
+
 export type ScreenBrief =
   | SettingsScreenBrief
   | OnboardingScreenBrief
-  | MarketingLandingScreenBrief;
+  | MarketingLandingScreenBrief
+  | DashboardScreenBrief;
 
 export interface CriticRepairActionUpdateSection {
   type: "updateSection";

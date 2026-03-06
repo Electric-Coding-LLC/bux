@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   canonicalProjectFixture,
+  canonicalDashboardScreenBriefFixture,
   canonicalMarketingLandingScreenBriefFixture,
   canonicalSettingsScreenBriefFixture
 } from "@bux/core-model";
@@ -60,5 +61,17 @@ describe("workbench document persistence", () => {
 
     expect(parsed.activeBlueprintId).toBe("signal-stack");
     expect(parsed.brief).toEqual(canonicalMarketingLandingScreenBriefFixture);
+  });
+
+  it("round-trips dashboard briefs", () => {
+    const document = serializeWorkbenchDocument(
+      canonicalDashboardScreenBriefFixture,
+      "ops-radar"
+    );
+
+    const parsed = parseWorkbenchDocument(JSON.parse(document) as unknown);
+
+    expect(parsed.activeBlueprintId).toBe("ops-radar");
+    expect(parsed.brief).toEqual(canonicalDashboardScreenBriefFixture);
   });
 });

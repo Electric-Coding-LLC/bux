@@ -6,6 +6,7 @@ import { applyAction } from "@bux/core-engine";
 import { evaluateScreen } from "@bux/critic-rules";
 import {
   type BreakpointName,
+  type DashboardScreenDensity,
   type DensityMode,
   type MarketingLandingDensity,
   type OnboardingScreenDensity,
@@ -251,25 +252,37 @@ export function App() {
   }
 
   function setBriefDensity(
-    value: OnboardingScreenDensity | SettingsScreenDensity | MarketingLandingDensity
+    value:
+      | DashboardScreenDensity
+      | OnboardingScreenDensity
+      | SettingsScreenDensity
+      | MarketingLandingDensity
   ) {
     setRepairHistory([]);
-    setBrief((current) =>
-      current.screenType === "settings"
-        ? {
+    setBrief((current) => {
+      switch (current.screenType) {
+        case "settings":
+          return {
             ...current,
             density: value as SettingsScreenDensity
-          }
-        : current.screenType === "onboarding"
-          ? {
-              ...current,
-              density: value as OnboardingScreenDensity
-            }
-          : {
-              ...current,
-              density: value as MarketingLandingDensity
-            }
-    );
+          };
+        case "onboarding":
+          return {
+            ...current,
+            density: value as OnboardingScreenDensity
+          };
+        case "marketingLanding":
+          return {
+            ...current,
+            density: value as MarketingLandingDensity
+          };
+        case "dashboard":
+          return {
+            ...current,
+            density: value as DashboardScreenDensity
+          };
+      }
+    });
   }
 
   function applySelectedBlueprint() {

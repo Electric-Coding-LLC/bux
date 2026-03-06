@@ -2,6 +2,7 @@ import {
   type CriticReport,
   type ConstraintsDocument,
   CURRENT_SCHEMA_VERSION,
+  type DashboardScreenBrief,
   type MarketingLandingScreenBrief,
   type OnboardingScreenBrief,
   type PageDocument,
@@ -207,6 +208,13 @@ export const canonicalMarketingLandingScreenBriefFixture: MarketingLandingScreen
   screenType: "marketingLanding",
   title: "Launch with a clearer product story",
   density: "focused"
+};
+
+export const canonicalDashboardScreenBriefFixture: DashboardScreenBrief = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  screenType: "dashboard",
+  title: "Team operations pulse",
+  density: "operational"
 };
 
 export const canonicalCriticReportFixture: CriticReport = {

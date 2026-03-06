@@ -221,6 +221,11 @@ Do not add a second screen type until:
    - Added 4 authored `marketingLanding` blueprints built from the existing hero, proof, and conversion section set, with densities for editorial, focused, and launch-oriented landing pages.
    - Added landing-page critic rules for primary-pitch placement, dashboard drift, fragmented narrative, missing proof, and weak conversion hierarchy, plus deterministic fixes for hero reorder, operational-surface removal, CTA simplification, and narrative trimming.
    - Added tests covering marketing blueprints, marketing critic behavior, marketing candidate generation, and `brief.json` round-tripping for the new brief shape.
+25. Add dashboard as the third expanded screen type. Completed on 2026-03-06.
+   - Extended the shared brief model, schemas, and workbench persistence so `dashboard` now participates in the same brief, blueprint, candidate, critic, and export loop as the other supported screens.
+   - Added 4 authored `dashboard` blueprints with summary-band-led compositions for executive, operational, and focused monitoring modes using the existing section primitives.
+   - Added dashboard-specific critic rules for buried summary bands, missing operational surfaces, presentation drift, fragmented surface stacks, density mismatch, and competing banner CTAs, along with deterministic fixes for summary reorder, drift removal, CTA simplification, and surface trimming.
+   - Added tests covering dashboard blueprints, dashboard critic behavior, dashboard candidate generation, and `brief.json` round-tripping for the new brief shape.
 
 ## Working Method
 
