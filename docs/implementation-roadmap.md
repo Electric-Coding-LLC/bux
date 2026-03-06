@@ -206,6 +206,11 @@ Do not add a second screen type until:
    - Updated project open/save flow to restore that active blueprint provenance into app state, preserving baseline status and restore-baseline behavior after reload.
    - Included blueprint provenance in the project fingerprint so unsaved provenance changes are tracked consistently in the workbench.
    - Added tests covering provenance serialization, backward compatibility with older `brief.json` files, and fingerprint changes when provenance differs.
+22. Add a baseline compare view for the active blueprint source. Completed on 2026-03-06.
+   - Extended active-blueprint status triage in `apps/playground` with structured compare data so the workbench can show current-versus-baseline score, findings, and export status directly.
+   - Updated the active blueprint panel to render a compact compare block under the status summary, keeping the decision to keep edits or restore baseline in the same surface.
+   - Kept ranking, repair flow, and export gating unchanged while making baseline tradeoffs more legible.
+   - Added tests covering compare values for matching baselines, regressed drift, and improvements over a blocked baseline.
 
 ## Working Method
 
