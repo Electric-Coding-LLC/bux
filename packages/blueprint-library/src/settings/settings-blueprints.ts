@@ -2,21 +2,9 @@ import {
   CURRENT_SCHEMA_VERSION,
   type PageDocument,
   type SectionNode,
-  type SettingsScreenBrief,
-  type SettingsScreenDensity
+  type SettingsScreenBrief
 } from "@bux/core-model";
-
-export interface SettingsBlueprint {
-  id: string;
-  name: string;
-  description: string;
-  hierarchyIntent: string;
-  densityEnvelope: SettingsScreenDensity[];
-  ctaStrategy: string;
-  allowedVariants: Array<"grouped" | "flat">;
-  antiPatternNotes: string[];
-  createPage: (brief: SettingsScreenBrief) => PageDocument;
-}
+import type { SettingsBlueprint } from "../types";
 
 function settingsSection(
   id: string,
@@ -95,6 +83,7 @@ function page(title: string, sections: SectionNode[]): PageDocument {
 const settingsBlueprintDefinitions: SettingsBlueprint[] = [
   {
     id: "anchor-balance",
+    screenType: "settings",
     name: "Anchor Balance",
     description: "A balanced grouped screen with one clear starting area and evenly paced support groups.",
     hierarchyIntent: "Open with a strong central settings block, then let secondary groups scan cleanly around it.",
@@ -126,6 +115,7 @@ const settingsBlueprintDefinitions: SettingsBlueprint[] = [
   },
   {
     id: "primary-spotlight",
+    screenType: "settings",
     name: "Primary Spotlight",
     description: "A featured lead group with quieter supporting groups arranged beneath it.",
     hierarchyIntent: "Make one topic dominant, then cluster related follow-up groups underneath.",
@@ -159,6 +149,7 @@ const settingsBlueprintDefinitions: SettingsBlueprint[] = [
   },
   {
     id: "guided-rail",
+    screenType: "settings",
     name: "Guided Rail",
     description: "A main settings body paired with a side rail for context, reminders, and one explicit next action.",
     hierarchyIntent: "Keep the editable controls dominant while a narrow rail handles guidance and supporting context.",
@@ -208,6 +199,7 @@ const settingsBlueprintDefinitions: SettingsBlueprint[] = [
   },
   {
     id: "dense-ops",
+    screenType: "settings",
     name: "Dense Ops",
     description: "A flatter, tighter settings screen for operational teams that need quick scanning without decorative cards.",
     hierarchyIntent: "Favor dense scanning and minimal chrome while preserving one obvious action target.",
@@ -241,6 +233,7 @@ const settingsBlueprintDefinitions: SettingsBlueprint[] = [
   },
   {
     id: "quiet-zones",
+    screenType: "settings",
     name: "Quiet Zones",
     description: "A calmer grouped composition with explicit semantic zones and softer pacing between sections.",
     hierarchyIntent: "Reduce noise and let a few strong semantic zones do the organizational work.",

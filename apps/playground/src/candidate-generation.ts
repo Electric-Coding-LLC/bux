@@ -1,30 +1,41 @@
 import {
-  settingsBlueprints,
+  getBlueprintsForScreenType,
+  type ScreenBlueprint,
   type SettingsBlueprint
 } from "@bux/blueprint-library";
-import { evaluateSettingsScreen } from "@bux/critic-rules";
+import { evaluateScreen } from "@bux/critic-rules";
 import { collectValidationIssues } from "@bux/exporter/browser";
 import {
   type CriticReport,
   type PlaygroundProject,
+  type ScreenBrief,
   type SettingsScreenBrief
 } from "@bux/core-model";
 import {
   evaluateExportReadiness,
   type ExportReadiness
 } from "./export-readiness";
-import { applySettingsBlueprintToProject } from "./settings-workbench";
+import { applyBlueprintToProject } from "./screen-workbench";
 
-export interface GeneratedSettingsCandidate {
-  blueprint: SettingsBlueprint;
+export interface GeneratedCandidate<
+  TBrief extends ScreenBrief = ScreenBrief,
+  TBlueprint extends ScreenBlueprint = ScreenBlueprint
+> {
+  blueprint: TBlueprint;
   exportReadiness: ExportReadiness;
   project: PlaygroundProject;
   report: CriticReport;
+  brief: TBrief;
 }
 
+export type GeneratedSettingsCandidate = GeneratedCandidate<
+  SettingsScreenBrief,
+  SettingsBlueprint
+>;
+
 function compareCandidates(
-  left: GeneratedSettingsCandidate,
-  right: GeneratedSettingsCandidate
+  left: GeneratedCandidate,
+  right: GeneratedCandidate
 ): number {
   if (left.report.score !== right.report.score) {
     return right.report.score - left.report.score;
@@ -42,12 +53,12 @@ function compareCandidates(
 }
 
 function prioritizeBlueprint(
-  left: SettingsBlueprint,
-  right: SettingsBlueprint,
-  brief: SettingsScreenBrief
+  left: ScreenBlueprint,
+  right: ScreenBlueprint,
+  brief: ScreenBrief
 ): number {
-  const leftMatches = left.densityEnvelope.includes(brief.density);
-  const rightMatches = right.densityEnvelope.includes(brief.density);
+  const leftMatches = left.densityEnvelope.some((density) => density === brief.density);
+  const rightMatches = right.densityEnvelope.some((density) => density === brief.density);
 
   if (leftMatches !== rightMatches) {
     return leftMatches ? -1 : 1;
@@ -56,20 +67,21 @@ function prioritizeBlueprint(
   return left.id.localeCompare(right.id);
 }
 
-export function generateSettingsCandidates(
+export function generateCandidates<TBrief extends ScreenBrief>(
   baseProject: PlaygroundProject,
-  brief: SettingsScreenBrief,
+  brief: TBrief,
   maxCandidates = 4
-): GeneratedSettingsCandidate[] {
-  return [...settingsBlueprints]
+): Array<GeneratedCandidate<TBrief>> {
+  return [...getBlueprintsForScreenType(brief.screenType)]
     .sort((left, right) => prioritizeBlueprint(left, right, brief))
     .slice(0, maxCandidates)
     .map((blueprint) => {
-      const project = applySettingsBlueprintToProject(baseProject, brief, blueprint.id);
-      const report = evaluateSettingsScreen(project, brief);
+      const project = applyBlueprintToProject(baseProject, brief, blueprint.id);
+      const report = evaluateScreen(project, brief);
 
       return {
         blueprint,
+        brief,
         exportReadiness: evaluateExportReadiness(
           report,
           collectValidationIssues(project)
@@ -79,4 +91,12 @@ export function generateSettingsCandidates(
       };
     })
     .sort(compareCandidates);
+}
+
+export function generateSettingsCandidates(
+  baseProject: PlaygroundProject,
+  brief: SettingsScreenBrief,
+  maxCandidates = 4
+): GeneratedSettingsCandidate[] {
+  return generateCandidates(baseProject, brief, maxCandidates) as GeneratedSettingsCandidate[];
 }

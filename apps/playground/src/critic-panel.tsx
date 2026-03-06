@@ -2,7 +2,7 @@ import type {
   CriticFindingSeverity,
   CriticReport,
   PlaygroundProject,
-  SettingsScreenBrief
+  ScreenBrief
 } from "@bux/core-model";
 import type {
   FindingRepairState,
@@ -16,7 +16,7 @@ interface CriticPanelProps {
   blockedCandidateGap: BlockedCandidateGapSummary | null;
   findingRepairs: ReadonlyArray<FindingRepairState>;
   onApplySuggestedFix: (repair: FindingRepairState) => void;
-  brief: SettingsScreenBrief;
+  brief: ScreenBrief;
   project: PlaygroundProject;
   prioritizedRepairs: ReadonlyArray<PrioritizedRepair>;
   repairHistory: ReadonlyArray<RepairHistoryEntry>;
@@ -59,9 +59,6 @@ export function CriticPanel({
   repairHistory,
   report
 }: CriticPanelProps) {
-  const settingsSectionCount = project.page.sections.filter(
-    (section) => section.type === "settings"
-  ).length;
   const latestRepair = repairHistory[0] ?? null;
   const previousRepairs = repairHistory.slice(1);
   const showApprovalState = shouldShowApprovalState({
@@ -78,7 +75,7 @@ export function CriticPanel({
           <p className="critic-eyebrow">Current Candidate</p>
           <h2>{project.page.title}</h2>
           <p className="critic-description">
-            Live critic output for the active settings brief.
+            Live critic output for the active {brief.screenType} brief.
           </p>
         </div>
         <div className={`critic-score verdict-${report.verdict}`}>
@@ -90,7 +87,7 @@ export function CriticPanel({
       <div className="critic-meta">
         <span>Density target: {brief.density}</span>
         <span>Rules checked: {report.summary.totalRules}</span>
-        <span>Settings sections: {settingsSectionCount}</span>
+        <span>Sections: {project.page.sections.length}</span>
         <span>Triggered rules: {report.summary.triggeredRules}</span>
       </div>
 

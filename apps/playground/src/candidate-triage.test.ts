@@ -34,11 +34,13 @@ function makeCandidate(
     options?.findingCount ?? (canExport ? 0 : 1);
 
   return {
+    brief: createInitialSettingsBrief(),
     blueprint: {
       id: blueprintId,
       name: blueprintId,
       description: `${blueprintId} description`,
       hierarchyIntent: `${blueprintId} intent`,
+      screenType: "settings",
       densityEnvelope: ["comfortable"],
       ctaStrategy: "single-primary",
       allowedVariants: ["grouped"],

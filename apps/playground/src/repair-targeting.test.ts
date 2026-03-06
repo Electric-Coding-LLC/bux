@@ -3,6 +3,7 @@ import type { CriticReport } from "@bux/core-model";
 import type { BlockedCandidateGapSummary } from "./candidate-triage";
 import type { ActionableFindingRepairState, FindingRepairState } from "./critic-repair";
 import { prioritizeBlockedCandidateRepairs } from "./repair-targeting";
+import { createInitialSettingsBrief } from "./settings-workbench";
 
 function makeActionableRepair(
   label: string,
@@ -68,11 +69,13 @@ function makeActionableRepair(
 describe("prioritizeBlockedCandidateRepairs", () => {
   const blockedGap: BlockedCandidateGapSummary = {
     bestExportReady: {
+      brief: createInitialSettingsBrief(),
       blueprint: {
         id: "best-ready",
         name: "Best Ready",
         description: "",
         hierarchyIntent: "",
+        screenType: "settings",
         densityEnvelope: ["comfortable"],
         ctaStrategy: "single-primary",
         allowedVariants: ["grouped"],

@@ -2,9 +2,9 @@ import type {
   CriticReport,
   CriticVerdict,
   PlaygroundProject,
-  SettingsScreenBrief
+  ScreenBrief
 } from "@bux/core-model";
-import type { GeneratedSettingsCandidate } from "./candidate-generation";
+import type { GeneratedCandidate } from "./candidate-generation";
 import {
   summarizeActiveBlueprintStatus,
   summarizeCandidateRecommendation,
@@ -18,9 +18,9 @@ interface CandidateListPanelProps {
   activeExportReadiness: ExportReadiness;
   activeProject: PlaygroundProject;
   activeReport: CriticReport;
-  brief: SettingsScreenBrief;
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>;
-  onLoadCandidate: (candidate: GeneratedSettingsCandidate) => void;
+  brief: ScreenBrief;
+  candidates: ReadonlyArray<GeneratedCandidate>;
+  onLoadCandidate: (candidate: GeneratedCandidate) => void;
   workbenchStanding: WorkbenchStandingSummary;
 }
 
@@ -176,7 +176,9 @@ export function CandidateListPanel({
       <ol className="candidate-list">
         {candidates.map((candidate, index) => {
           const isActive = candidate.blueprint.id === activeBlueprintId;
-          const densityAligned = candidate.blueprint.densityEnvelope.includes(brief.density);
+          const densityAligned = candidate.blueprint.densityEnvelope.some(
+            (density) => density === brief.density
+          );
           const isBestOverall =
             candidateLeads.bestOverall?.blueprint.id === candidate.blueprint.id;
           const isBestExportReady =

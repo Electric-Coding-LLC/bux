@@ -211,6 +211,16 @@ Do not add a second screen type until:
    - Updated the active blueprint panel to render a compact compare block under the status summary, keeping the decision to keep edits or restore baseline in the same surface.
    - Kept ranking, repair flow, and export gating unchanged while making baseline tradeoffs more legible.
    - Added tests covering compare values for matching baselines, regressed drift, and improvements over a blocked baseline.
+23. Add first non-settings screen coverage with onboarding. Completed on 2026-03-06.
+   - Extended the core brief model, schemas, blueprint library, and critic routing so the workbench can now handle both `settings` and `onboarding` screen types without forking the product loop.
+   - Added 4 authored `onboarding` blueprints with deterministic page construction, plus onboarding-specific critic rules for intro placement, activation-surface presence, guidance density, CTA focus, and fragmented flow.
+   - Updated `apps/playground` to switch screen types from the brief editor, generate and rank candidates for the active screen, persist either brief shape in `brief.json`, and keep export gating, repair application, and candidate triage working across both tracks.
+   - Added tests covering onboarding blueprints, onboarding critic behavior, and onboarding candidate generation while keeping the existing settings suite intact.
+24. Add marketing landing as the second expanded screen type. Completed on 2026-03-06.
+   - Extended the shared brief model and workbench persistence again so `marketingLanding` now routes through the same multi-screen candidate, approval, and export loop as `settings` and `onboarding`.
+   - Added 4 authored `marketingLanding` blueprints built from the existing hero, proof, and conversion section set, with densities for editorial, focused, and launch-oriented landing pages.
+   - Added landing-page critic rules for primary-pitch placement, dashboard drift, fragmented narrative, missing proof, and weak conversion hierarchy, plus deterministic fixes for hero reorder, operational-surface removal, CTA simplification, and narrative trimming.
+   - Added tests covering marketing blueprints, marketing critic behavior, marketing candidate generation, and `brief.json` round-tripping for the new brief shape.
 
 ## Working Method
 

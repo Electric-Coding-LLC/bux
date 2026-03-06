@@ -1,16 +1,16 @@
-import { type SettingsBlueprint } from "@bux/blueprint-library";
-import { type SettingsScreenBrief } from "@bux/core-model";
+import { type ScreenBlueprint } from "@bux/blueprint-library";
+import { type ScreenBrief } from "@bux/core-model";
 
 interface BlueprintLibraryPanelProps {
   activeBlueprintId: string | null;
-  blueprints: ReadonlyArray<SettingsBlueprint>;
-  brief: SettingsScreenBrief;
+  blueprints: ReadonlyArray<ScreenBlueprint>;
+  brief: ScreenBrief;
   onApplyBlueprint: () => void;
   onBlueprintChange: (blueprintId: string) => void;
 }
 
-function densityLabel(briefDensity: SettingsScreenBrief["density"], blueprint: SettingsBlueprint) {
-  return blueprint.densityEnvelope.includes(briefDensity)
+function densityLabel(briefDensity: ScreenBrief["density"], blueprint: ScreenBlueprint) {
+  return blueprint.densityEnvelope.some((density) => density === briefDensity)
     ? "Density aligned"
     : "Density outside envelope";
 }
@@ -27,7 +27,10 @@ export function BlueprintLibraryPanel({
       <div className="panel-title-row">
         <div>
           <h2>Blueprints</h2>
-          <p className="panel-caption">Apply one authored `settings` composition to the current candidate.</p>
+          <p className="panel-caption">
+            Apply one authored <code>{brief.screenType}</code> composition to the current
+            candidate.
+          </p>
         </div>
       </div>
 

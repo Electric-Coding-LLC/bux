@@ -1,15 +1,15 @@
 import {
   type CriticReport,
   type PlaygroundProject,
-  type SettingsScreenBrief
+  type ScreenBrief
 } from "@bux/core-model";
 import { canonicalJSONStringify } from "@bux/exporter/browser";
-import type { GeneratedSettingsCandidate } from "./candidate-generation";
+import type { GeneratedCandidate } from "./candidate-generation";
 import type { ExportReadiness } from "./export-readiness";
 
 export interface CandidateLeadSummary {
-  bestExportReady: GeneratedSettingsCandidate | null;
-  bestOverall: GeneratedSettingsCandidate | null;
+  bestExportReady: GeneratedCandidate | null;
+  bestOverall: GeneratedCandidate | null;
 }
 
 export interface WorkbenchStandingSummary {
@@ -20,7 +20,7 @@ export interface WorkbenchStandingSummary {
 
 export interface CandidateRecommendation {
   actionLabel: string;
-  candidate: GeneratedSettingsCandidate;
+  candidate: GeneratedCandidate;
   label: string;
   status: "approved" | "blocked";
   summary: string;
@@ -44,14 +44,14 @@ export interface ActiveBlueprintStatusSummary {
     };
   };
   canRestoreBaseline: boolean;
-  candidate: GeneratedSettingsCandidate;
+  candidate: GeneratedCandidate;
   label: string;
   status: "approved" | "blocked";
   summary: string;
 }
 
 export interface BlockedCandidateGapSummary {
-  bestExportReady: GeneratedSettingsCandidate;
+  bestExportReady: GeneratedCandidate;
   blockedReasons: string[];
   findingGap: number;
   scoreGap: number;
@@ -68,7 +68,7 @@ export interface BlockedCandidateGapProgress {
 }
 
 export function summarizeCandidateLeads(
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+  candidates: ReadonlyArray<GeneratedCandidate>
 ): CandidateLeadSummary {
   return {
     bestExportReady:
@@ -100,7 +100,7 @@ function strongerOrEqual(left: CriticReport, right: CriticReport): boolean {
 export function summarizeWorkbenchStanding(
   report: CriticReport,
   exportReadiness: ExportReadiness,
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+  candidates: ReadonlyArray<GeneratedCandidate>
 ): WorkbenchStandingSummary {
   const candidateLeads = summarizeCandidateLeads(candidates);
   const { bestExportReady, bestOverall } = candidateLeads;
@@ -175,8 +175,8 @@ export function summarizeWorkbenchStanding(
 }
 
 function summarizeRecommendationContext(
-  bestOverall: GeneratedSettingsCandidate | null,
-  bestExportReady: GeneratedSettingsCandidate
+  bestOverall: GeneratedCandidate | null,
+  bestExportReady: GeneratedCandidate
 ): string {
   if (!bestOverall || bestOverall.blueprint.id === bestExportReady.blueprint.id) {
     return " It also leads the ranked field overall.";
@@ -188,7 +188,7 @@ function summarizeRecommendationContext(
 export function summarizeCandidateRecommendation(
   report: CriticReport,
   exportReadiness: ExportReadiness,
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+  candidates: ReadonlyArray<GeneratedCandidate>
 ): CandidateRecommendation | null {
   const { bestExportReady, bestOverall } = summarizeCandidateLeads(candidates);
 
@@ -240,7 +240,7 @@ export function summarizeCandidateRecommendation(
 
 function serializeCandidateSurface(
   project: PlaygroundProject,
-  brief: SettingsScreenBrief
+  brief: ScreenBrief
 ): string {
   return [
     canonicalJSONStringify(project.tokens),
@@ -277,7 +277,7 @@ function summarizeRelativeFindings(findingDelta: number): string {
 
 function summarizeRelativeExportStatus(
   exportReadiness: ExportReadiness,
-  baseline: GeneratedSettingsCandidate
+  baseline: GeneratedCandidate
 ): string {
   if (exportReadiness.canExport && !baseline.exportReadiness.canExport) {
     return "now clears export even though the baseline still does not.";
@@ -297,7 +297,7 @@ function summarizeRelativeExportStatus(
 function createActiveBlueprintComparison(
   report: CriticReport,
   exportReadiness: ExportReadiness,
-  baseline: GeneratedSettingsCandidate
+  baseline: GeneratedCandidate
 ): ActiveBlueprintStatusSummary["comparison"] {
   return {
     exportStatus: {
@@ -320,10 +320,10 @@ function createActiveBlueprintComparison(
 export function summarizeActiveBlueprintStatus(
   activeBlueprintId: string | null,
   project: PlaygroundProject,
-  brief: SettingsScreenBrief,
+  brief: ScreenBrief,
   report: CriticReport,
   exportReadiness: ExportReadiness,
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+  candidates: ReadonlyArray<GeneratedCandidate>
 ): ActiveBlueprintStatusSummary | null {
   if (!activeBlueprintId) {
     return null;
@@ -413,7 +413,7 @@ function summarizeFindingGap(findingGap: number): string {
 export function summarizeBlockedCandidateGap(
   report: CriticReport,
   exportReadiness: ExportReadiness,
-  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+  candidates: ReadonlyArray<GeneratedCandidate>
 ): BlockedCandidateGapSummary | null {
   if (exportReadiness.canExport) {
     return null;

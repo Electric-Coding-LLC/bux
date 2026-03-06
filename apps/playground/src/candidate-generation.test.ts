@@ -1,6 +1,10 @@
 import { canonicalProjectFixture } from "@bux/core-model";
 import { describe, expect, it } from "bun:test";
-import { generateSettingsCandidates } from "./candidate-generation";
+import {
+  generateCandidates,
+  generateSettingsCandidates
+} from "./candidate-generation";
+import { createInitialBrief } from "./screen-workbench";
 import { createInitialSettingsBrief } from "./settings-workbench";
 
 describe("generateSettingsCandidates", () => {
@@ -79,5 +83,37 @@ describe("generateSettingsCandidates", () => {
     expect(blockedCandidates[0]?.blueprint.id).toBe("quiet-zones");
     expect(blockedCandidates[0]?.exportReadiness.summary).toContain("Critic verdict is warn");
     expect(blockedCandidates[0]?.exportReadiness.blockedReasons).toHaveLength(1);
+  });
+
+  it("generates ranked onboarding candidates with hero-led flows", () => {
+    const brief = createInitialBrief("onboarding");
+    const candidates = generateCandidates(structuredClone(canonicalProjectFixture), brief);
+
+    expect(candidates).toHaveLength(4);
+    expect(candidates.every((candidate) => candidate.blueprint.screenType === "onboarding")).toBe(
+      true
+    );
+    expect(candidates.every((candidate) => candidate.project.page.sections[0]?.type === "hero")).toBe(
+      true
+    );
+    expect(candidates.some((candidate) => candidate.exportReadiness.canExport)).toBe(true);
+  });
+
+  it("generates ranked marketing landing candidates with hero-led story structure", () => {
+    const brief = createInitialBrief("marketingLanding");
+    const candidates = generateCandidates(structuredClone(canonicalProjectFixture), brief);
+
+    expect(candidates).toHaveLength(4);
+    expect(
+      candidates.every((candidate) => candidate.blueprint.screenType === "marketingLanding")
+    ).toBe(true);
+    expect(candidates.every((candidate) => candidate.project.page.sections[0]?.type === "hero")).toBe(
+      true
+    );
+    expect(
+      candidates.some((candidate) =>
+        candidate.project.page.sections.some((section) => section.type === "featureGrid")
+      )
+    ).toBe(true);
   });
 });
