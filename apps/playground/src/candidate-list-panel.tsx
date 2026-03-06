@@ -1,6 +1,12 @@
-import type { CriticReport, CriticVerdict, SettingsScreenBrief } from "@bux/core-model";
+import type {
+  CriticReport,
+  CriticVerdict,
+  PlaygroundProject,
+  SettingsScreenBrief
+} from "@bux/core-model";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import {
+  summarizeActiveBlueprintStatus,
   summarizeCandidateRecommendation,
   summarizeCandidateLeads,
   type WorkbenchStandingSummary
@@ -10,6 +16,7 @@ import type { ExportReadiness } from "./export-readiness";
 interface CandidateListPanelProps {
   activeBlueprintId: string | null;
   activeExportReadiness: ExportReadiness;
+  activeProject: PlaygroundProject;
   activeReport: CriticReport;
   brief: SettingsScreenBrief;
   candidates: ReadonlyArray<GeneratedSettingsCandidate>;
@@ -26,6 +33,7 @@ const verdictLabels: Record<CriticVerdict, string> = {
 export function CandidateListPanel({
   activeBlueprintId,
   activeExportReadiness,
+  activeProject,
   activeReport,
   brief,
   candidates,
@@ -34,6 +42,14 @@ export function CandidateListPanel({
 }: CandidateListPanelProps) {
   const candidateLeads = summarizeCandidateLeads(candidates);
   const recommendation = summarizeCandidateRecommendation(
+    activeReport,
+    activeExportReadiness,
+    candidates
+  );
+  const activeBlueprintStatus = summarizeActiveBlueprintStatus(
+    activeBlueprintId,
+    activeProject,
+    brief,
     activeReport,
     activeExportReadiness,
     candidates
@@ -75,6 +91,21 @@ export function CandidateListPanel({
             </button>
           </div>
           <p>{recommendation.summary}</p>
+        </section>
+      ) : null}
+
+      {activeBlueprintStatus ? (
+        <section className={`active-blueprint-status active-blueprint-status-${activeBlueprintStatus.status}`}>
+          <div className="active-blueprint-status-header">
+            <div>
+              <h3>{activeBlueprintStatus.label}</h3>
+              <span>{activeBlueprintStatus.candidate.blueprint.name}</span>
+            </div>
+            <span className="active-blueprint-status-chip">
+              {activeBlueprintStatus.status === "approved" ? "Approved" : "Blocked"}
+            </span>
+          </div>
+          <p>{activeBlueprintStatus.summary}</p>
         </section>
       ) : null}
 

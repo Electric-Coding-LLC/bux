@@ -1,19 +1,38 @@
 import { describe, expect, it } from "bun:test";
-import type { CriticReport, PlaygroundProject } from "@bux/core-model";
+import { canonicalProjectFixture, type CriticReport, type PlaygroundProject } from "@bux/core-model";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import {
+  summarizeActiveBlueprintStatus,
   summarizeBlockedCandidateGap,
   summarizeBlockedCandidateGapProgress,
   summarizeCandidateRecommendation,
   summarizeCandidateLeads,
   summarizeWorkbenchStanding
 } from "./candidate-triage";
+import { createInitialSettingsBrief } from "./settings-workbench";
+
+function makeProject(title: string): PlaygroundProject {
+  return {
+    ...structuredClone(canonicalProjectFixture),
+    page: {
+      ...structuredClone(canonicalProjectFixture.page),
+      title
+    }
+  };
+}
 
 function makeCandidate(
   blueprintId: string,
   score: number,
-  canExport: boolean
+  canExport: boolean,
+  options?: {
+    findingCount?: number;
+    project?: PlaygroundProject;
+  }
 ): GeneratedSettingsCandidate {
+  const findingCount =
+    options?.findingCount ?? (canExport ? 0 : 1);
+
   return {
     blueprint: {
       id: blueprintId,
@@ -33,20 +52,25 @@ function makeCandidate(
       status: canExport ? "approved" : "blocked",
       summary: canExport ? "Ready" : "Blocked"
     },
-    project: {} as PlaygroundProject,
+    project: options?.project ?? ({} as PlaygroundProject),
     report: {
       schemaVersion: "1.0.0",
       screenType: "settings",
       score,
       verdict: canExport ? "pass" : "warn",
-      findings: [],
+      findings: Array.from({ length: findingCount }, (_, index) => ({
+        code: `${blueprintId}.finding_${index + 1}`,
+        severity: "medium" as const,
+        message: `${blueprintId} finding ${index + 1}`,
+        path: "/page/sections/0"
+      })),
       summary: {
         totalRules: 12,
-        triggeredRules: canExport ? 0 : 1,
+        triggeredRules: findingCount,
         severityCounts: {
           high: 0,
           low: 0,
-          medium: canExport ? 0 : 1
+          medium: findingCount
         }
       }
     } as CriticReport
@@ -88,7 +112,9 @@ describe("summarizeCandidateLeads", () => {
   });
 
   it("summarizes the gap from a blocked active candidate to the best export-ready reference", () => {
-    const blockedCandidate = makeCandidate("blocked-one", 80, false);
+    const blockedCandidate = makeCandidate("blocked-one", 80, false, {
+      findingCount: 0
+    });
     const summary = summarizeBlockedCandidateGap(
       blockedCandidate.report,
       blockedCandidate.exportReadiness,
@@ -262,6 +288,85 @@ describe("summarizeCandidateRecommendation", () => {
     );
 
     expect(recommendation).toBeNull();
+  });
+});
+
+describe("summarizeActiveBlueprintStatus", () => {
+  it("reports when the active editor still matches an approved blueprint baseline", () => {
+    const brief = createInitialSettingsBrief();
+    const baselineProject = makeProject("Workspace settings");
+    const baselineCandidate = makeCandidate("best-ready", 92, true, {
+      project: baselineProject
+    });
+
+    const summary = summarizeActiveBlueprintStatus(
+      "best-ready",
+      baselineProject,
+      brief,
+      baselineCandidate.report,
+      baselineCandidate.exportReadiness,
+      [baselineCandidate]
+    );
+
+    expect(summary?.label).toBe("Matching approved blueprint");
+    expect(summary?.status).toBe("approved");
+    expect(summary?.summary).toContain("matches that approved baseline exactly");
+  });
+
+  it("reports when the active editor drifts behind an approved blueprint baseline", () => {
+    const brief = createInitialSettingsBrief();
+    const baselineProject = makeProject("Workspace settings");
+    const driftedProject = makeProject("Edited workspace settings");
+    const baselineCandidate = makeCandidate("best-ready", 92, true, {
+      project: baselineProject,
+      findingCount: 0
+    });
+    const driftedCandidate = makeCandidate("active", 84, false, {
+      findingCount: 2
+    });
+
+    const summary = summarizeActiveBlueprintStatus(
+      "best-ready",
+      driftedProject,
+      brief,
+      driftedCandidate.report,
+      driftedCandidate.exportReadiness,
+      [baselineCandidate]
+    );
+
+    expect(summary?.label).toBe("Drifted from blueprint");
+    expect(summary?.status).toBe("blocked");
+    expect(summary?.summary).toContain("8 points behind");
+    expect(summary?.summary).toContain("2 more findings");
+    expect(summary?.summary).toContain("no longer clears export");
+  });
+
+  it("reports when edits improve a blocked blueprint into an approved custom candidate", () => {
+    const brief = createInitialSettingsBrief();
+    const baselineProject = makeProject("Workspace settings");
+    const customizedProject = makeProject("Improved workspace settings");
+    const blockedBaseline = makeCandidate("quiet-zones", 80, false, {
+      project: baselineProject,
+      findingCount: 2
+    });
+    const approvedCustom = makeCandidate("active", 90, true, {
+      findingCount: 0
+    });
+
+    const summary = summarizeActiveBlueprintStatus(
+      "quiet-zones",
+      customizedProject,
+      brief,
+      approvedCustom.report,
+      approvedCustom.exportReadiness,
+      [blockedBaseline]
+    );
+
+    expect(summary?.label).toBe("Customized from blueprint");
+    expect(summary?.status).toBe("approved");
+    expect(summary?.summary).toContain("10 points ahead");
+    expect(summary?.summary).toContain("2 fewer findings");
+    expect(summary?.summary).toContain("now clears export");
   });
 });
 
