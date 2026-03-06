@@ -22,8 +22,14 @@ const requiredProjectFiles = [
 type ProjectFileName = (typeof requiredProjectFiles)[number];
 
 export interface LoadedProjectState {
+  activeBlueprintId: string | null;
   brief: SettingsScreenBrief | null;
   project: PlaygroundProject;
+}
+
+interface WorkbenchDocument {
+  activeBlueprintId: string | null;
+  brief: SettingsScreenBrief;
 }
 
 type DirectoryPickerOptions = {
@@ -69,7 +75,19 @@ function isSettingsDensity(value: unknown): value is SettingsScreenBrief["densit
   return value === "compact" || value === "comfortable" || value === "calm";
 }
 
-function parseBriefDocument(value: unknown): SettingsScreenBrief {
+function parseActiveBlueprintId(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("brief.json activeBlueprintId must be a non-empty string when provided.");
+  }
+
+  return value;
+}
+
+export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
   if (!isRecord(value)) {
     throw new Error("brief.json must be a JSON object.");
   }
@@ -87,11 +105,27 @@ function parseBriefDocument(value: unknown): SettingsScreenBrief {
   }
 
   return {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
-    screenType: "settings",
-    title: value.title,
-    density: value.density
+    activeBlueprintId: parseActiveBlueprintId(value.activeBlueprintId),
+    brief: {
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      screenType: "settings",
+      title: value.title,
+      density: value.density
+    }
   };
+}
+
+export function serializeWorkbenchDocument(
+  brief: SettingsScreenBrief,
+  activeBlueprintId: string | null
+): string {
+  return canonicalJSONStringify({
+    activeBlueprintId,
+    density: brief.density,
+    schemaVersion: brief.schemaVersion,
+    screenType: brief.screenType,
+    title: brief.title
+  });
 }
 
 export function canUseDirectoryPicker(): boolean {
@@ -104,14 +138,16 @@ export function createNewProject(): PlaygroundProject {
 
 export function serializeProjectFingerprint(
   project: PlaygroundProject,
-  brief: SettingsScreenBrief = canonicalSettingsScreenBriefFixture
+  brief: SettingsScreenBrief = canonicalSettingsScreenBriefFixture,
+  activeBlueprintId: string | null = null
 ): string {
   return [
     canonicalJSONStringify(project.tokens),
     canonicalJSONStringify(project.page),
     canonicalJSONStringify(project.constraints),
     canonicalJSONStringify(project.summary),
-    canonicalJSONStringify(brief)
+    canonicalJSONStringify(brief),
+    canonicalJSONStringify(activeBlueprintId)
   ].join("\n");
 }
 
@@ -154,9 +190,14 @@ export async function loadProjectFromDirectoryHandle(
     requiredProjectFiles.map((fileName) => readJSONFile(directoryHandle, fileName))
   );
   let brief: SettingsScreenBrief | null = null;
+  let activeBlueprintId: string | null = null;
 
   try {
-    brief = parseBriefDocument(await readJSONFile(directoryHandle, "brief.json"));
+    const workbenchDocument = parseWorkbenchDocument(
+      await readJSONFile(directoryHandle, "brief.json")
+    );
+    brief = workbenchDocument.brief;
+    activeBlueprintId = workbenchDocument.activeBlueprintId;
   } catch (error) {
     if (!(error instanceof DOMException && error.name === "NotFoundError")) {
       throw error;
@@ -164,6 +205,7 @@ export async function loadProjectFromDirectoryHandle(
   }
 
   return {
+    activeBlueprintId,
     brief,
     project: migrateProjectFilesToCurrentSchema({
       tokens,
@@ -177,14 +219,15 @@ export async function loadProjectFromDirectoryHandle(
 export async function saveProjectToDirectoryHandle(
   directoryHandle: FileSystemDirectoryHandle,
   project: PlaygroundProject,
-  brief: SettingsScreenBrief
+  brief: SettingsScreenBrief,
+  activeBlueprintId: string | null
 ): Promise<string[]> {
   const files = createExportBundleFiles(project);
 
   await Promise.all(
     [
       ...Object.entries(files),
-      ["brief.json", canonicalJSONStringify(brief)] as const
+      ["brief.json", serializeWorkbenchDocument(brief, activeBlueprintId)] as const
     ].map(([fileName, contents]) =>
       writeTextFile(directoryHandle, fileName, contents)
     )

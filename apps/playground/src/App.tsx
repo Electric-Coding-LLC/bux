@@ -150,7 +150,8 @@ export function App() {
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     serializeProjectFingerprint(
       createSettingsStarterProject(),
-      createInitialSettingsBrief()
+      createInitialSettingsBrief(),
+      defaultSettingsBlueprintId
     )
   );
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
@@ -201,8 +202,8 @@ export function App() {
   );
   const supportsDirectoryPicker = canUseDirectoryPicker();
   const currentFingerprint = useMemo(
-    () => serializeProjectFingerprint(project, brief),
-    [brief, project]
+    () => serializeProjectFingerprint(project, brief, activeBlueprintId),
+    [activeBlueprintId, brief, project]
   );
   const previewLayout = useMemo(
     () => resolvePreviewLayout(project, activeBreakpoint),
@@ -410,15 +411,20 @@ export function App() {
     nextProject: PlaygroundProject,
     directoryHandle: FileSystemDirectoryHandle | null,
     nextNotice: ProjectNotice,
-    nextBrief = deriveBriefFromProject(nextProject, brief)
+    nextBrief = deriveBriefFromProject(nextProject, brief),
+    nextActiveBlueprintId: string | null = null
   ) {
-    const fingerprint = serializeProjectFingerprint(nextProject, nextBrief);
+    const fingerprint = serializeProjectFingerprint(
+      nextProject,
+      nextBrief,
+      nextActiveBlueprintId
+    );
 
     startTransition(() => {
       setProject(nextProject);
       setBrief(nextBrief);
       setProjectDirectoryHandle(directoryHandle);
-      setActiveBlueprintId(null);
+      setActiveBlueprintId(nextActiveBlueprintId);
       setRepairHistory([]);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
@@ -429,7 +435,11 @@ export function App() {
   function createFreshProject() {
     const nextProject = createSettingsStarterProject();
     const nextBrief = createInitialSettingsBrief();
-    const fingerprint = serializeProjectFingerprint(nextProject, nextBrief);
+    const fingerprint = serializeProjectFingerprint(
+      nextProject,
+      nextBrief,
+      defaultSettingsBlueprintId
+    );
 
     startTransition(() => {
       setProject(nextProject);
@@ -462,7 +472,8 @@ export function App() {
             tone: "success",
             message: `Opened project from ${directoryHandle.name}.`
           },
-          nextBrief
+          nextBrief,
+          loadedState.activeBlueprintId
         );
       } catch (error) {
         if (isPickerAbort(error)) {
@@ -485,7 +496,12 @@ export function App() {
           !saveAs && projectDirectoryHandle
             ? projectDirectoryHandle
             : await promptForDirectory("save");
-        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project, brief);
+        const savedFiles = await saveProjectToDirectoryHandle(
+          directoryHandle,
+          project,
+          brief,
+          activeBlueprintId
+        );
 
         setProjectDirectoryHandle(directoryHandle);
         setSavedFingerprint(currentFingerprint);
@@ -519,7 +535,12 @@ export function App() {
     await withBusyState("Exporting bundle...", async () => {
       try {
         const directoryHandle = await promptForDirectory("save");
-        const savedFiles = await saveProjectToDirectoryHandle(directoryHandle, project, brief);
+        const savedFiles = await saveProjectToDirectoryHandle(
+          directoryHandle,
+          project,
+          brief,
+          activeBlueprintId
+        );
 
         setNotice({
           tone: "success",
