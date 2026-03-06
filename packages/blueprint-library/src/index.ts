@@ -4,6 +4,12 @@ import type {
   PageDocument
 } from "@bux/core-model";
 import {
+  createDashboardPageFromBlueprint,
+  dashboardBlueprints,
+  defaultDashboardBlueprintId,
+  getDashboardBlueprint
+} from "./dashboard/dashboard-blueprints";
+import {
   createMarketingLandingPageFromBlueprint,
   defaultMarketingLandingBlueprintId,
   getMarketingLandingBlueprint,
@@ -21,47 +27,77 @@ import {
   getSettingsBlueprint,
   settingsBlueprints
 } from "./settings/settings-blueprints";
-import type { MarketingLandingBlueprint, OnboardingBlueprint, SettingsBlueprint } from "./types";
+import type {
+  DashboardBlueprint,
+  MarketingLandingBlueprint,
+  OnboardingBlueprint,
+  SettingsBlueprint
+} from "./types";
 
+export * from "./dashboard/dashboard-blueprints";
 export * from "./marketing/marketing-blueprints";
 export * from "./onboarding/onboarding-blueprints";
 export * from "./settings/settings-blueprints";
 export * from "./types";
 
 export function getBlueprintsForScreenType(screenType: ScreenType) {
-  return screenType === "settings"
-    ? settingsBlueprints
-    : screenType === "onboarding"
-      ? onboardingBlueprints
-      : marketingLandingBlueprints;
+  switch (screenType) {
+    case "settings":
+      return settingsBlueprints;
+    case "onboarding":
+      return onboardingBlueprints;
+    case "marketingLanding":
+      return marketingLandingBlueprints;
+    case "dashboard":
+      return dashboardBlueprints;
+  }
 }
 
 export function getDefaultBlueprintId(screenType: ScreenType): string {
-  return screenType === "settings"
-    ? defaultSettingsBlueprintId
-    : screenType === "onboarding"
-      ? defaultOnboardingBlueprintId
-      : defaultMarketingLandingBlueprintId;
+  switch (screenType) {
+    case "settings":
+      return defaultSettingsBlueprintId;
+    case "onboarding":
+      return defaultOnboardingBlueprintId;
+    case "marketingLanding":
+      return defaultMarketingLandingBlueprintId;
+    case "dashboard":
+      return defaultDashboardBlueprintId;
+  }
 }
 
 export function getBlueprint(
   blueprintId: string,
   screenType: ScreenType
-): SettingsBlueprint | OnboardingBlueprint | MarketingLandingBlueprint {
-  return screenType === "settings"
-    ? getSettingsBlueprint(blueprintId)
-    : screenType === "onboarding"
-      ? getOnboardingBlueprint(blueprintId)
-      : getMarketingLandingBlueprint(blueprintId);
+):
+  | SettingsBlueprint
+  | OnboardingBlueprint
+  | MarketingLandingBlueprint
+  | DashboardBlueprint {
+  switch (screenType) {
+    case "settings":
+      return getSettingsBlueprint(blueprintId);
+    case "onboarding":
+      return getOnboardingBlueprint(blueprintId);
+    case "marketingLanding":
+      return getMarketingLandingBlueprint(blueprintId);
+    case "dashboard":
+      return getDashboardBlueprint(blueprintId);
+  }
 }
 
 export function createPageFromBlueprint(
   blueprintId: string,
   brief: ScreenBrief
 ): PageDocument {
-  return brief.screenType === "settings"
-    ? createSettingsPageFromBlueprint(blueprintId, brief)
-    : brief.screenType === "onboarding"
-      ? createOnboardingPageFromBlueprint(blueprintId, brief)
-      : createMarketingLandingPageFromBlueprint(blueprintId, brief);
+  switch (brief.screenType) {
+    case "settings":
+      return createSettingsPageFromBlueprint(blueprintId, brief);
+    case "onboarding":
+      return createOnboardingPageFromBlueprint(blueprintId, brief);
+    case "marketingLanding":
+      return createMarketingLandingPageFromBlueprint(blueprintId, brief);
+    case "dashboard":
+      return createDashboardPageFromBlueprint(blueprintId, brief);
+  }
 }

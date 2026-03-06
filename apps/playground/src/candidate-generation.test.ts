@@ -116,4 +116,24 @@ describe("generateSettingsCandidates", () => {
       )
     ).toBe(true);
   });
+
+  it("generates ranked dashboard candidates with a summary band and operational follow-up", () => {
+    const brief = createInitialBrief("dashboard");
+    const candidates = generateCandidates(structuredClone(canonicalProjectFixture), brief);
+
+    expect(candidates).toHaveLength(4);
+    expect(candidates.every((candidate) => candidate.blueprint.screenType === "dashboard")).toBe(
+      true
+    );
+    expect(candidates.every((candidate) => candidate.project.page.sections[0]?.type === "featureGrid")).toBe(
+      true
+    );
+    expect(
+      candidates.some((candidate) =>
+        candidate.project.page.sections.some(
+          (section) => section.type === "list" || section.type === "table"
+        )
+      )
+    ).toBe(true);
+  });
 });

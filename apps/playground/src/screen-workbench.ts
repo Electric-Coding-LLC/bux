@@ -4,10 +4,12 @@ import {
 } from "@bux/blueprint-library";
 import { applyAction } from "@bux/core-engine";
 import {
+  canonicalDashboardScreenBriefFixture,
   canonicalMarketingLandingScreenBriefFixture,
   canonicalOnboardingScreenBriefFixture,
   canonicalProjectFixture,
   canonicalSettingsScreenBriefFixture,
+  type DashboardScreenBrief,
   type MarketingLandingScreenBrief,
   type OnboardingScreenBrief,
   type PlaygroundProject,
@@ -23,15 +25,19 @@ export function createInitialBrief(
 export function createInitialBrief(
   screenType: "marketingLanding"
 ): MarketingLandingScreenBrief;
+export function createInitialBrief(screenType: "dashboard"): DashboardScreenBrief;
 export function createInitialBrief(screenType: ScreenType): ScreenBrief;
 export function createInitialBrief(screenType: ScreenType): ScreenBrief {
-  return structuredClone(
-    screenType === "settings"
-      ? canonicalSettingsScreenBriefFixture
-      : screenType === "onboarding"
-        ? canonicalOnboardingScreenBriefFixture
-        : canonicalMarketingLandingScreenBriefFixture
-  );
+  switch (screenType) {
+    case "settings":
+      return structuredClone(canonicalSettingsScreenBriefFixture);
+    case "onboarding":
+      return structuredClone(canonicalOnboardingScreenBriefFixture);
+    case "marketingLanding":
+      return structuredClone(canonicalMarketingLandingScreenBriefFixture);
+    case "dashboard":
+      return structuredClone(canonicalDashboardScreenBriefFixture);
+  }
 }
 
 export function applyBlueprintToProject<TBrief extends ScreenBrief>(
