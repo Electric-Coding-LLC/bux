@@ -186,6 +186,11 @@ Do not add a second screen type until:
    - Updated the candidate panel to surface that standing directly, including whether the current candidate is strongest overall, strongest export-ready, still blocked despite leading on score, or still chasing the field.
    - Kept generated candidate ranking unchanged while making the active-candidate handoff from repair to export clearer.
    - Added tests covering leading-approved, leading-but-blocked, strongest-export-ready, and no-export-ready-reference states.
+18. Recommend the strongest export-ready candidate when the workbench trails. Completed on 2026-03-06.
+   - Added explicit recommendation triage in `apps/playground` so the workbench can identify the strongest currently exportable generated candidate whenever the active candidate is blocked or is approved but not the best approved option.
+   - Updated the candidate panel to show a focused recommendation card with the approved reference candidate and a direct load action instead of forcing users to infer the next step from ranked badges alone.
+   - Kept generated ranking and export gating unchanged while making the handoff from candidate comparison to candidate adoption explicit.
+   - Added tests covering blocked-candidate fallback recommendations, stronger-approved-candidate recommendations, and the already-best-approved case.
 
 ## Working Method
 

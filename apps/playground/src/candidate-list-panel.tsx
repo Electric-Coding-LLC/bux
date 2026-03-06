@@ -1,6 +1,7 @@
 import type { CriticReport, CriticVerdict, SettingsScreenBrief } from "@bux/core-model";
 import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import {
+  summarizeCandidateRecommendation,
   summarizeCandidateLeads,
   type WorkbenchStandingSummary
 } from "./candidate-triage";
@@ -32,6 +33,11 @@ export function CandidateListPanel({
   workbenchStanding
 }: CandidateListPanelProps) {
   const candidateLeads = summarizeCandidateLeads(candidates);
+  const recommendation = summarizeCandidateRecommendation(
+    activeReport,
+    activeExportReadiness,
+    candidates
+  );
 
   return (
     <section className="candidate-panel">
@@ -53,6 +59,24 @@ export function CandidateListPanel({
         </div>
         <span className="screen-type-chip">{brief.density}</span>
       </div>
+
+      {recommendation ? (
+        <section className={`candidate-recommendation candidate-recommendation-${recommendation.status}`}>
+          <div className="candidate-recommendation-header">
+            <div>
+              <h3>{recommendation.label}</h3>
+              <span>{recommendation.candidate.blueprint.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onLoadCandidate(recommendation.candidate)}
+            >
+              {recommendation.actionLabel}
+            </button>
+          </div>
+          <p>{recommendation.summary}</p>
+        </section>
+      ) : null}
 
       <section className={`workbench-standing workbench-standing-${workbenchStanding.status}`}>
         <div className="workbench-standing-header">
