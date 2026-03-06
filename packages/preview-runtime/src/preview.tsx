@@ -361,6 +361,29 @@ function renderSettings(
   const isLoading = stress.stateMode === "loading";
   const isEmpty = stress.stateMode === "empty";
   const heading = applyCopyStress(asString(section.slots.heading, "Settings"), stress.copyMode);
+  const description = isLoading
+    ? "Loading settings description..."
+    : isEmpty
+      ? ""
+      : applyCopyStress(asString(section.slots.description, ""), stress.copyMode);
+  const note = isLoading
+    ? "Loading note..."
+    : isEmpty
+      ? ""
+      : applyCopyStress(asString(section.slots.note, ""), stress.copyMode);
+  const actionLabel = isLoading
+    ? "Saving..."
+    : applyCopyStress(asString(section.slots.actionLabel, ""), stress.copyMode);
+  const actionTone = asString(section.props.actionTone, "neutral");
+  const layoutStyle = asString(section.props.layoutStyle, "balanced");
+  const emphasizedIndex = asNumber(section.props.emphasizedIndex, 0);
+  const groupDescriptions = isLoading
+    ? ["Loading details...", "Loading details...", "Loading details..."]
+    : isEmpty
+      ? []
+      : asArray<string>(section.slots.groupDescriptions).map((entry) =>
+          applyCopyStress(asString(entry, ""), stress.copyMode)
+        );
   const groups = isLoading
     ? ["Loading group A", "Loading group B", "Loading group C"]
     : isEmpty
@@ -368,34 +391,128 @@ function renderSettings(
       : asArray<string>(section.slots.groups).map((group) =>
           applyCopyStress(asString(group, "Group"), stress.copyMode)
         );
+  const railTitle = isLoading
+    ? "Loading guidance"
+    : applyCopyStress(asString(section.slots.railTitle, ""), stress.copyMode);
+  const railItems = isLoading
+    ? ["Loading guidance item", "Loading guidance item"]
+    : isEmpty
+      ? []
+      : asArray<string>(section.slots.railItems).map((entry) =>
+          applyCopyStress(asString(entry, ""), stress.copyMode)
+        );
+  const groupedColumns = clampResponsiveColumns(
+    Math.max(1, asNumber(section.props.groupCount, groups.length || 1)),
+    activeBreakpointLayout,
+    layoutStyle === "dense"
+      ? { compact: 1, medium: 1, wide: 1 }
+      : layoutStyle === "calm"
+        ? { compact: 1, medium: 1, wide: 2 }
+        : { compact: 1, medium: 2, wide: 4 }
+  );
+  const featuredGroup =
+    groups.length > 0 ? groups[Math.min(emphasizedIndex, groups.length - 1)] : null;
+  const featuredDescription =
+    groupDescriptions[Math.min(emphasizedIndex, Math.max(0, groupDescriptions.length - 1))] ??
+    "";
+  const remainingGroups = groups.filter((_, index) => index !== emphasizedIndex);
+  const remainingDescriptions = groupDescriptions.filter((_, index) => index !== emphasizedIndex);
+  const shellClassName = [
+    "preview-settings-shell",
+    `layout-${layoutStyle}`,
+    activeBreakpointLayout.isCompact ? "layout-compact" : ""
+  ]
+    .filter((value) => value.length > 0)
+    .join(" ");
 
   return (
     <section className="preview-section preview-settings" data-section-id={section.id}>
       {renderStateBanner(stress)}
-      <h2>{heading}</h2>
-      {groups.length === 0 ? <p className="preview-empty-copy">No settings groups.</p> : null}
-      <div
-        className="preview-settings-groups"
-        style={{
-          gridTemplateColumns: `repeat(${clampResponsiveColumns(
-            Math.max(1, asNumber(section.props.groupCount, groups.length || 1)),
-            activeBreakpointLayout,
-            { compact: 1, medium: 2, wide: 4 }
-          )}, minmax(0, 1fr))`
-        }}
-      >
-        {groups.map((group, index) => (
-          <article
-            key={`${section.id}-group-${index}`}
-            className={`preview-settings-group${isLoading ? " preview-card-loading" : ""}`}
+      <div className={shellClassName}>
+        <div className="preview-settings-main">
+          <div className="preview-settings-header">
+            <div>
+              <h2>{heading}</h2>
+              {description.length > 0 ? (
+                <p className="preview-settings-description">{description}</p>
+              ) : null}
+            </div>
+            {actionLabel.length > 0 ? (
+              <button
+                className={actionTone === "accent" ? "btn-primary" : "btn-secondary"}
+                disabled={isLoading || stress.stateMode === "error"}
+              >
+                {actionLabel}
+              </button>
+            ) : null}
+          </div>
+
+          {note.length > 0 ? <p className="preview-settings-note">{note}</p> : null}
+          {groups.length === 0 ? <p className="preview-empty-copy">No settings groups.</p> : null}
+
+          {layoutStyle === "spotlight" && featuredGroup ? (
+            <article
+              className={`preview-settings-group preview-settings-featured${
+                isLoading ? " preview-card-loading" : ""
+              }`}
+            >
+              <h3>{featuredGroup}</h3>
+              {featuredDescription.length > 0 ? <p>{featuredDescription}</p> : null}
+              <label>
+                <span>Enabled</span>
+                <input type="checkbox" disabled checked readOnly />
+              </label>
+            </article>
+          ) : null}
+
+          <div
+            className={`preview-settings-groups layout-${layoutStyle}`}
+            style={{
+              gridTemplateColumns: `repeat(${groupedColumns}, minmax(0, 1fr))`
+            }}
           >
-            <h3>{group}</h3>
-            <label>
-              <span>Enabled</span>
-              <input type="checkbox" disabled checked={index % 2 === 0} readOnly />
-            </label>
-          </article>
-        ))}
+            {(layoutStyle === "spotlight" ? remainingGroups : groups).map((group, index) => {
+              const descriptionIndex =
+                layoutStyle === "spotlight" ? index : index;
+              const detail =
+                layoutStyle === "spotlight"
+                  ? remainingDescriptions[index] ?? ""
+                  : groupDescriptions[index] ?? "";
+
+              return (
+                <article
+                  key={`${section.id}-group-${index}`}
+                  className={`preview-settings-group preview-settings-group-${layoutStyle}${
+                    isLoading ? " preview-card-loading" : ""
+                  }`}
+                >
+                  <h3>{group}</h3>
+                  {detail.length > 0 ? <p>{detail}</p> : null}
+                  <label>
+                    <span>{descriptionIndex % 2 === 0 ? "Enabled" : "Default"}</span>
+                    <input
+                      type="checkbox"
+                      disabled
+                      checked={descriptionIndex % 2 === 0}
+                      readOnly
+                    />
+                  </label>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+
+        {layoutStyle === "rail" && railItems.length > 0 ? (
+          <aside className="preview-settings-rail">
+            {railTitle.length > 0 ? <h3>{railTitle}</h3> : null}
+            <ul>
+              {railItems.map((item, index) => (
+                <li key={`${section.id}-rail-${index}`}>{item}</li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
       </div>
     </section>
   );

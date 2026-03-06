@@ -1,7 +1,10 @@
 import {
+  CURRENT_SCHEMA_VERSION,
   canonicalProjectFixture,
+  canonicalSettingsScreenBriefFixture,
   migrateProjectFilesToCurrentSchema,
-  type PlaygroundProject
+  type PlaygroundProject,
+  type SettingsScreenBrief
 } from "@bux/core-model";
 import {
   canonicalJSONStringify,
@@ -17,6 +20,11 @@ const requiredProjectFiles = [
 ] as const;
 
 type ProjectFileName = (typeof requiredProjectFiles)[number];
+
+export interface LoadedProjectState {
+  brief: SettingsScreenBrief | null;
+  project: PlaygroundProject;
+}
 
 type DirectoryPickerOptions = {
   id?: string;
@@ -35,7 +43,7 @@ function getDirectoryPicker(): ((options?: DirectoryPickerOptions) => Promise<Fi
 
 async function readJSONFile(
   directoryHandle: FileSystemDirectoryHandle,
-  fileName: ProjectFileName
+  fileName: string
 ): Promise<unknown> {
   const fileHandle = await directoryHandle.getFileHandle(fileName);
   const file = await fileHandle.getFile();
@@ -53,6 +61,39 @@ async function writeTextFile(
   await writable.close();
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSettingsDensity(value: unknown): value is SettingsScreenBrief["density"] {
+  return value === "compact" || value === "comfortable" || value === "calm";
+}
+
+function parseBriefDocument(value: unknown): SettingsScreenBrief {
+  if (!isRecord(value)) {
+    throw new Error("brief.json must be a JSON object.");
+  }
+
+  if (value.screenType !== "settings") {
+    throw new Error('brief.json screenType must be "settings".');
+  }
+
+  if (typeof value.title !== "string" || value.title.trim().length === 0) {
+    throw new Error("brief.json title must be a non-empty string.");
+  }
+
+  if (!isSettingsDensity(value.density)) {
+    throw new Error('brief.json density must be "comfortable", "compact", or "calm".');
+  }
+
+  return {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    screenType: "settings",
+    title: value.title,
+    density: value.density
+  };
+}
+
 export function canUseDirectoryPicker(): boolean {
   return getDirectoryPicker() !== null;
 }
@@ -61,12 +102,16 @@ export function createNewProject(): PlaygroundProject {
   return structuredClone(canonicalProjectFixture);
 }
 
-export function serializeProjectFingerprint(project: PlaygroundProject): string {
+export function serializeProjectFingerprint(
+  project: PlaygroundProject,
+  brief: SettingsScreenBrief = canonicalSettingsScreenBriefFixture
+): string {
   return [
     canonicalJSONStringify(project.tokens),
     canonicalJSONStringify(project.page),
     canonicalJSONStringify(project.constraints),
-    canonicalJSONStringify(project.summary)
+    canonicalJSONStringify(project.summary),
+    canonicalJSONStringify(brief)
   ].join("\n");
 }
 
@@ -104,30 +149,46 @@ export async function promptForDirectory(
 
 export async function loadProjectFromDirectoryHandle(
   directoryHandle: FileSystemDirectoryHandle
-): Promise<PlaygroundProject> {
+): Promise<LoadedProjectState> {
   const [tokens, page, constraints, summary] = await Promise.all(
     requiredProjectFiles.map((fileName) => readJSONFile(directoryHandle, fileName))
   );
+  let brief: SettingsScreenBrief | null = null;
 
-  return migrateProjectFilesToCurrentSchema({
-    tokens,
-    page,
-    constraints,
-    summary
-  });
+  try {
+    brief = parseBriefDocument(await readJSONFile(directoryHandle, "brief.json"));
+  } catch (error) {
+    if (!(error instanceof DOMException && error.name === "NotFoundError")) {
+      throw error;
+    }
+  }
+
+  return {
+    brief,
+    project: migrateProjectFilesToCurrentSchema({
+      tokens,
+      page,
+      constraints,
+      summary
+    })
+  };
 }
 
 export async function saveProjectToDirectoryHandle(
   directoryHandle: FileSystemDirectoryHandle,
-  project: PlaygroundProject
+  project: PlaygroundProject,
+  brief: SettingsScreenBrief
 ): Promise<string[]> {
   const files = createExportBundleFiles(project);
 
   await Promise.all(
-    Object.entries(files).map(([fileName, contents]) =>
+    [
+      ...Object.entries(files),
+      ["brief.json", canonicalJSONStringify(brief)] as const
+    ].map(([fileName, contents]) =>
       writeTextFile(directoryHandle, fileName, contents)
     )
   );
 
-  return Object.keys(files).sort();
+  return [...Object.keys(files), "brief.json"].sort();
 }

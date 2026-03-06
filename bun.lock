@@ -24,8 +24,10 @@
     "apps/playground": {
       "name": "@bux/playground",
       "dependencies": {
+        "@bux/blueprint-library": "workspace:*",
         "@bux/core-engine": "workspace:*",
         "@bux/core-model": "workspace:*",
+        "@bux/critic-rules": "workspace:*",
         "@bux/preview-runtime": "workspace:*",
         "@bux/section-kit": "workspace:*",
         "react": "^19.1.1",
@@ -58,6 +60,12 @@
         "@bux/adapter-contract": "workspace:*",
         "@bux/core-model": "workspace:*",
         "@bux/section-kit": "workspace:*",
+      },
+    },
+    "packages/blueprint-library": {
+      "name": "@bux/blueprint-library",
+      "dependencies": {
+        "@bux/core-model": "workspace:*",
       },
     },
     "packages/core-engine": {
@@ -152,6 +160,8 @@
     "@bux/adapters-next": ["@bux/adapters-next@workspace:packages/adapters-next"],
 
     "@bux/adapters-webstir": ["@bux/adapters-webstir@workspace:packages/adapters-webstir"],
+
+    "@bux/blueprint-library": ["@bux/blueprint-library@workspace:packages/blueprint-library"],
 
     "@bux/core-engine": ["@bux/core-engine@workspace:packages/core-engine"],
 

@@ -21,7 +21,61 @@ export const criticReportSchema = {
           code: { type: "string", minLength: 1 },
           severity: { type: "string", enum: [...criticFindingSeverities] },
           message: { type: "string", minLength: 1 },
-          path: { type: "string", minLength: 1 }
+          path: { type: "string", minLength: 1 },
+          suggestedFix: {
+            type: "object",
+            additionalProperties: false,
+            required: ["id", "label", "description", "actions"],
+            properties: {
+              id: { type: "string", minLength: 1 },
+              label: { type: "string", minLength: 1 },
+              description: { type: "string", minLength: 1 },
+              actions: {
+                type: "array",
+                items: {
+                  oneOf: [
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["type", "sectionId", "changes"],
+                      properties: {
+                        type: { const: "updateSection" },
+                        sectionId: { type: "string", minLength: 1 },
+                        changes: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            variant: { type: "string", minLength: 1 },
+                            props: { type: "object" },
+                            slots: { type: "object" }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["type", "sectionId", "toIndex"],
+                      properties: {
+                        type: { const: "reorderSection" },
+                        sectionId: { type: "string", minLength: 1 },
+                        toIndex: { type: "number", minimum: 0 }
+                      }
+                    },
+                    {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["type", "sectionId"],
+                      properties: {
+                        type: { const: "removeSection" },
+                        sectionId: { type: "string", minLength: 1 }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     },

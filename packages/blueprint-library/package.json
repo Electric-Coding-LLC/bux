@@ -1,0 +1,11 @@
+{
+  "name": "@bux/blueprint-library",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@bux/core-model": "workspace:*"
+  }
+}

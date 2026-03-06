@@ -9,6 +9,14 @@ import {
   settingsSections,
   stringGroups
 } from "./helpers";
+import {
+  mergeSettingsSectionsFix,
+  moveSettingsSectionToTopFix,
+  normalizeSettingsVariantsFix,
+  removeDecorativeSectionsFix,
+  splitCompoundGroupFix,
+  switchFlatSectionToGroupedFix
+} from "./repair-helpers";
 
 const tableMisuseRule: CriticRule<SettingsScreenBrief> = {
   code: "settings.table_misuse",
@@ -35,6 +43,7 @@ const weakPrimaryFocusRule: CriticRule<SettingsScreenBrief> = {
     const settings = settingsSections(project);
     const firstSection = project.page.sections[0];
     const nonSettings = nonSettingsSections(project);
+    const primarySettingsSection = settings[0];
 
     if (settings.length === 0) {
       return [
@@ -51,7 +60,12 @@ const weakPrimaryFocusRule: CriticRule<SettingsScreenBrief> = {
         {
           severity: "high",
           message: `Settings screens should open with settings content, not a ${firstSection?.type ?? "non-settings"} section.`,
-          path: "/page/sections/0"
+          path: "/page/sections/0",
+          ...(primarySettingsSection
+            ? {
+                suggestedFix: moveSettingsSectionToTopFix(primarySettingsSection.section.id)
+              }
+            : {})
         }
       ];
     }
@@ -96,11 +110,14 @@ const overSegmentedGroupsRule: CriticRule<SettingsScreenBrief> = {
     ).length;
 
     if (settingsSections(project).length >= 3 && shallowSectionCount >= 2) {
+      const suggestedFix = mergeSettingsSectionsFix(project);
+
       findings.push({
         severity: "high",
         message:
           "Multiple tiny settings panels suggest the screen has been fragmented into one-purpose groups.",
-        path: "/page/sections"
+        path: "/page/sections",
+        ...(suggestedFix ? { suggestedFix } : {})
       });
     }
 
@@ -158,20 +175,26 @@ const variantDriftRule: CriticRule<SettingsScreenBrief> = {
     const findings: CriticRuleFinding[] = [];
 
     if (variantCount > 1) {
+      const suggestedFix = normalizeSettingsVariantsFix(project);
+
       findings.push({
         severity: "medium" as const,
         message:
           "The settings screen mixes multiple settings variants, which weakens a coherent hierarchy.",
-        path: "/page/sections"
+        path: "/page/sections",
+        ...(suggestedFix ? { suggestedFix } : {})
       });
     }
 
     if (decorativeTypes.length > 0) {
+      const suggestedFix = removeDecorativeSectionsFix(project);
+
       findings.push({
         severity: "medium" as const,
         message:
           "Presentation-heavy sections are fighting the settings flow instead of supporting a focused configuration screen.",
-        path: "/page/sections"
+        path: "/page/sections",
+        ...(suggestedFix ? { suggestedFix } : {})
       });
     }
 
@@ -234,7 +257,8 @@ const missingSemanticGroupingRule: CriticRule<SettingsScreenBrief> = {
           severity: "medium" as const,
           message:
             "A flat settings variant with this many groups hides the semantic boundaries users need.",
-          path: sectionPath(index)
+          path: sectionPath(index),
+          suggestedFix: switchFlatSectionToGroupedFix(section)
         });
       }
 
@@ -243,11 +267,14 @@ const missingSemanticGroupingRule: CriticRule<SettingsScreenBrief> = {
           return;
         }
 
+        const suggestedFix = splitCompoundGroupFix(section, groupIndex);
+
         findings.push({
           severity: "medium" as const,
           message:
             "This group label bundles multiple topics together, which suggests related controls are not cleanly separated.",
-          path: sectionPath(index, `/slots/groups/${groupIndex}`)
+          path: sectionPath(index, `/slots/groups/${groupIndex}`),
+          ...(suggestedFix ? { suggestedFix } : {})
         });
       });
 
