@@ -101,9 +101,19 @@ export function CandidateListPanel({
               <h3>{activeBlueprintStatus.label}</h3>
               <span>{activeBlueprintStatus.candidate.blueprint.name}</span>
             </div>
-            <span className="active-blueprint-status-chip">
-              {activeBlueprintStatus.status === "approved" ? "Approved" : "Blocked"}
-            </span>
+            <div className="active-blueprint-status-actions">
+              <span className="active-blueprint-status-chip">
+                {activeBlueprintStatus.status === "approved" ? "Approved" : "Blocked"}
+              </span>
+              {activeBlueprintStatus.canRestoreBaseline ? (
+                <button
+                  type="button"
+                  onClick={() => onLoadCandidate(activeBlueprintStatus.candidate)}
+                >
+                  Restore blueprint baseline
+                </button>
+              ) : null}
+            </div>
           </div>
           <p>{activeBlueprintStatus.summary}</p>
         </section>

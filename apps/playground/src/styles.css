@@ -719,6 +719,12 @@ body {
   gap: 0.8rem;
 }
 
+.active-blueprint-status-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
 .active-blueprint-status-header h3 {
   margin: 0 0 0.2rem 0;
   font-size: 0.92rem;
@@ -736,6 +742,21 @@ body {
 
 .active-blueprint-status-chip {
   flex-shrink: 0;
+}
+
+.active-blueprint-status button {
+  flex-shrink: 0;
+  border: 1px solid #1d4ed8;
+  background: #ffffff;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.active-blueprint-status button:hover {
+  background: #eff6ff;
 }
 
 .active-blueprint-status p {
@@ -761,6 +782,15 @@ body {
 
 .active-blueprint-status-blocked .active-blueprint-status-header span {
   color: #9a3412;
+}
+
+.active-blueprint-status-blocked button {
+  border-color: #c2410c;
+  color: #c2410c;
+}
+
+.active-blueprint-status-blocked button:hover {
+  background: #ffedd5;
 }
 
 .workbench-standing {

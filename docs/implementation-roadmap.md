@@ -196,6 +196,11 @@ Do not add a second screen type until:
    - Updated the candidate panel to show an `Active Blueprint` status card that distinguishes unchanged approved baselines, unchanged blocked baselines, and customized/drifted candidates after edits.
    - Kept candidate ranking, recommendation logic, and export gating unchanged while making post-load editing state visible.
    - Added tests covering matching approved baselines, drifted blocked candidates, and customized candidates that improve past a blocked blueprint baseline.
+20. Restore the loaded blueprint baseline after candidate drift. Completed on 2026-03-06.
+   - Extended active-blueprint status triage in `apps/playground` so the workbench can explicitly tell when restoring the current blueprint baseline is a valid recovery action.
+   - Updated the candidate panel to show a direct `Restore blueprint baseline` action whenever the active candidate has diverged from its loaded blueprint source.
+   - Reused the existing candidate load flow so restoring the baseline also resets repair history and re-establishes the blueprint-backed editor state without changing ranking or export rules.
+   - Added tests covering when baseline restore should and should not be offered from active-blueprint status.
 
 ## Working Method
 

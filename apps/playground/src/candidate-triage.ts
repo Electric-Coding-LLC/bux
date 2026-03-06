@@ -27,6 +27,7 @@ export interface CandidateRecommendation {
 }
 
 export interface ActiveBlueprintStatusSummary {
+  canRestoreBaseline: boolean;
   candidate: GeneratedSettingsCandidate;
   label: string;
   status: "approved" | "blocked";
@@ -304,6 +305,7 @@ export function summarizeActiveBlueprintStatus(
   if (matchesBaseline) {
     if (candidate.exportReadiness.canExport) {
       return {
+        canRestoreBaseline: false,
         candidate,
         label: "Matching approved blueprint",
         status: "approved",
@@ -312,6 +314,7 @@ export function summarizeActiveBlueprintStatus(
     }
 
     return {
+      canRestoreBaseline: false,
       candidate,
       label: "Matching blocked blueprint",
       status: "blocked",
@@ -323,6 +326,7 @@ export function summarizeActiveBlueprintStatus(
   const findingDelta = report.findings.length - candidate.report.findings.length;
 
   return {
+    canRestoreBaseline: true,
     candidate,
     label: exportReadiness.canExport ? "Customized from blueprint" : "Drifted from blueprint",
     status: exportReadiness.canExport ? "approved" : "blocked",
