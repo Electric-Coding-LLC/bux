@@ -13,6 +13,14 @@ export interface WorkbenchStandingSummary {
   summary: string;
 }
 
+export interface CandidateRecommendation {
+  actionLabel: string;
+  candidate: GeneratedSettingsCandidate;
+  label: string;
+  status: "approved" | "blocked";
+  summary: string;
+}
+
 export interface BlockedCandidateGapSummary {
   bestExportReady: GeneratedSettingsCandidate;
   blockedReasons: string[];
@@ -134,6 +142,70 @@ export function summarizeWorkbenchStanding(
     label: "Blocked, chasing the field",
     status: "blocked",
     summary: `The active workbench candidate is still blocked and trails export-ready reference ${bestExportReady.blueprint.name}.`
+  };
+}
+
+function summarizeRecommendationContext(
+  bestOverall: GeneratedSettingsCandidate | null,
+  bestExportReady: GeneratedSettingsCandidate
+): string {
+  if (!bestOverall || bestOverall.blueprint.id === bestExportReady.blueprint.id) {
+    return " It also leads the ranked field overall.";
+  }
+
+  return ` ${bestOverall.blueprint.name} still leads overall, but remains blocked.`;
+}
+
+export function summarizeCandidateRecommendation(
+  report: CriticReport,
+  exportReadiness: ExportReadiness,
+  candidates: ReadonlyArray<GeneratedSettingsCandidate>
+): CandidateRecommendation | null {
+  const { bestExportReady, bestOverall } = summarizeCandidateLeads(candidates);
+
+  if (!bestExportReady) {
+    return null;
+  }
+
+  if (exportReadiness.canExport && strongerOrEqual(report, bestExportReady.report)) {
+    return null;
+  }
+
+  if (!exportReadiness.canExport && strongerOrEqual(report, bestExportReady.report)) {
+    return {
+      actionLabel: "Load export-ready reference",
+      candidate: bestExportReady,
+      label: "Export-ready fallback",
+      status: "blocked",
+      summary: `${bestExportReady.blueprint.name} is the strongest candidate that already clears export. Load it if you need an approved baseline now while the active candidate stays blocked.${summarizeRecommendationContext(
+        bestOverall,
+        bestExportReady
+      )}`
+    };
+  }
+
+  if (!exportReadiness.canExport) {
+    return {
+      actionLabel: "Load export-ready reference",
+      candidate: bestExportReady,
+      label: "Recommended export-ready candidate",
+      status: "blocked",
+      summary: `${bestExportReady.blueprint.name} is the strongest candidate that already clears export. Load it to continue from an approved baseline while the active candidate remains blocked.${summarizeRecommendationContext(
+        bestOverall,
+        bestExportReady
+      )}`
+    };
+  }
+
+  return {
+    actionLabel: "Load stronger approved candidate",
+    candidate: bestExportReady,
+    label: "Stronger export-ready option",
+    status: "approved",
+    summary: `${bestExportReady.blueprint.name} is currently the strongest export-ready candidate. Load it if you want the best approved option before exporting.${summarizeRecommendationContext(
+      bestOverall,
+      bestExportReady
+    )}`
   };
 }
 

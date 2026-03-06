@@ -4,6 +4,7 @@ import type { GeneratedSettingsCandidate } from "./candidate-generation";
 import {
   summarizeBlockedCandidateGap,
   summarizeBlockedCandidateGapProgress,
+  summarizeCandidateRecommendation,
   summarizeCandidateLeads,
   summarizeWorkbenchStanding
 } from "./candidate-triage";
@@ -197,6 +198,70 @@ describe("summarizeCandidateLeads", () => {
     expect(progress?.resolved).toBe(false);
     expect(progress?.exportReadyNow).toBe(false);
     expect(progress?.summary).toContain("did not reduce");
+  });
+});
+
+describe("summarizeCandidateRecommendation", () => {
+  it("recommends the best export-ready reference when the active candidate is blocked", () => {
+    const recommendation = summarizeCandidateRecommendation(
+      makeCandidate("active", 80, false).report,
+      makeCandidate("active", 80, false).exportReadiness,
+      [
+        makeCandidate("top-blocked", 94, false),
+        makeCandidate("best-ready", 90, true),
+        makeCandidate("later-ready", 88, true)
+      ]
+    );
+
+    expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
+    expect(recommendation?.label).toBe("Recommended export-ready candidate");
+    expect(recommendation?.status).toBe("blocked");
+    expect(recommendation?.summary).toContain("active candidate remains blocked");
+    expect(recommendation?.summary).toContain("top-blocked still leads overall");
+  });
+
+  it("keeps recommending an export-ready fallback when the active candidate leads on score but is blocked", () => {
+    const recommendation = summarizeCandidateRecommendation(
+      makeCandidate("active", 96, false).report,
+      makeCandidate("active", 96, false).exportReadiness,
+      [
+        makeCandidate("top-blocked", 94, false),
+        makeCandidate("best-ready", 90, true)
+      ]
+    );
+
+    expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
+    expect(recommendation?.label).toBe("Export-ready fallback");
+    expect(recommendation?.summary).toContain("approved baseline now");
+  });
+
+  it("recommends a stronger approved candidate when the active candidate can export but trails", () => {
+    const recommendation = summarizeCandidateRecommendation(
+      makeCandidate("active", 88, true).report,
+      makeCandidate("active", 88, true).exportReadiness,
+      [
+        makeCandidate("top-blocked", 96, false),
+        makeCandidate("best-ready", 92, true)
+      ]
+    );
+
+    expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
+    expect(recommendation?.label).toBe("Stronger export-ready option");
+    expect(recommendation?.status).toBe("approved");
+    expect(recommendation?.summary).toContain("best approved option");
+  });
+
+  it("returns null when the active candidate already matches the best export-ready option", () => {
+    const recommendation = summarizeCandidateRecommendation(
+      makeCandidate("active", 92, true).report,
+      makeCandidate("active", 92, true).exportReadiness,
+      [
+        makeCandidate("top-blocked", 96, false),
+        makeCandidate("best-ready", 90, true)
+      ]
+    );
+
+    expect(recommendation).toBeNull();
   });
 });
 
