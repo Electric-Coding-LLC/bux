@@ -1,8 +1,10 @@
 import {
+  type CriticReport,
   type ConstraintsDocument,
   CURRENT_SCHEMA_VERSION,
   type PageDocument,
   type PlaygroundProject,
+  type SettingsScreenBrief,
   type StressDocument,
   type SummaryDocument,
   type TokensDocument
@@ -182,6 +184,30 @@ export const canonicalStressFixture: StressDocument = {
   copyMode: "short",
   stateMode: "default",
   densityMode: "comfortable"
+};
+
+export const canonicalSettingsScreenBriefFixture: SettingsScreenBrief = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  screenType: "settings",
+  title: "Workspace settings",
+  density: "comfortable"
+};
+
+export const canonicalCriticReportFixture: CriticReport = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  screenType: "settings",
+  score: 100,
+  verdict: "pass",
+  findings: [],
+  summary: {
+    totalRules: 0,
+    triggeredRules: 0,
+    severityCounts: {
+      low: 0,
+      medium: 0,
+      high: 0
+    }
+  }
 };
 
 export const canonicalProjectFixture: PlaygroundProject = {

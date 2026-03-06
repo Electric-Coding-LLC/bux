@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonicalProjectFixture } from "../packages/core-model/src/fixture";
-import { createExportBundleFiles } from "../packages/exporter/src/export-bundle";
+import { createExportBundleFiles } from "../packages/exporter/src/bundle-files";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const fixtureDirectory = resolve(scriptDirectory, "../fixtures/canonical-project");
@@ -42,23 +42,24 @@ function createDiffSummary(
 
 async function main(): Promise<void> {
   const mismatches: string[] = [];
+  const expectedFileNames = Object.keys(expectedFiles) as Array<
+    Extract<keyof typeof expectedFiles, string>
+  >;
 
   await Promise.all(
-    (Object.keys(expectedFiles) as Array<keyof typeof expectedFiles>).map(
-      async (fileName) => {
-        const fixtureContents = await readFixtureFile(fileName);
-        const generatedContents = expectedFiles[fileName];
+    expectedFileNames.map(async (fileName) => {
+      const fixtureContents = await readFixtureFile(fileName);
+      const generatedContents = expectedFiles[fileName];
 
-        if (fixtureContents !== generatedContents) {
-          mismatches.push(
-            [
-              `${fileName} does not match canonical exporter output.`,
-              createDiffSummary(fixtureContents, generatedContents)
-            ].join("\n")
-          );
-        }
+      if (fixtureContents !== generatedContents) {
+        mismatches.push(
+          [
+            `${fileName} does not match canonical exporter output.`,
+            createDiffSummary(fixtureContents, generatedContents)
+          ].join("\n")
+        );
       }
-    )
+    })
   );
 
   if (mismatches.length > 0) {

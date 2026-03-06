@@ -10,7 +10,9 @@ export const previewStyles = `
 .preview-page {
   display: flex;
   flex-direction: column;
-  gap: var(--token-space-4);
+  gap: var(--preview-gutter);
+  max-width: var(--preview-container-width);
+  margin: 0 auto;
 }
 
 .preview-section {
@@ -37,6 +39,10 @@ export const previewStyles = `
   grid-template-columns: 1.3fr minmax(220px, 1fr);
   gap: var(--token-space-4);
   align-items: stretch;
+}
+
+.preview-hero.preview-hero-stacked {
+  grid-template-columns: 1fr;
 }
 
 .preview-eyebrow {
@@ -129,7 +135,7 @@ export const previewStyles = `
 }
 
 .preview-form-fields.layout-inline {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
 }
 
 .preview-form-field {
@@ -174,7 +180,6 @@ export const previewStyles = `
 .preview-settings-groups {
   display: grid;
   gap: var(--token-space-3);
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .preview-settings-group {

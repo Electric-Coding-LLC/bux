@@ -67,6 +67,21 @@ describe("applyAction", () => {
     expect(hero?.slots.primaryCta).toBe("Start from baseline");
   });
 
+  it("updates section rules and supports clearing maxItems", () => {
+    const next = applyAction(getProject(), {
+      type: "updateSectionRule",
+      sectionType: "hero",
+      changes: {
+        allowedVariants: ["split", "stacked"],
+        maxItems: null
+      }
+    });
+
+    const rule = next.constraints.sectionRules.find((entry) => entry.sectionType === "hero");
+    expect(rule?.allowedVariants).toEqual(["split", "stacked"]);
+    expect(rule && "maxItems" in rule).toBe(false);
+  });
+
   it("updates token values and recomputes summary metadata", () => {
     const next = applyAction(getProject(), {
       type: "setTokenValue",
@@ -76,6 +91,17 @@ describe("applyAction", () => {
 
     expect(next.tokens.colors.roles["text.tertiary"]).toBe("#6B7280");
     expect(next.summary.system.colorRoleCount).toBe(7);
+  });
+
+  it("updates constraint values and recomputes summary metadata", () => {
+    const next = applyAction(getProject(), {
+      type: "setConstraintValue",
+      path: ["layout", "defaultDensity"],
+      value: "compact"
+    });
+
+    expect(next.constraints.layout.defaultDensity).toBe("compact");
+    expect(next.summary.system.defaultDensity).toBe("compact");
   });
 
   it("removes sections by id", () => {
@@ -177,5 +203,43 @@ describe("errors", () => {
         value: 42
       })
     ).toThrow('Token path segment "unknown" does not exist.');
+  });
+
+  it("throws for non-existent constraint path segment", () => {
+    expect(() =>
+      applyAction(getProject(), {
+        type: "setConstraintValue",
+        path: ["layout", "unknown", "value"],
+        value: 42
+      })
+    ).toThrow('Constraint path segment "unknown" does not exist.');
+  });
+
+  it("throws for unknown section rule type", () => {
+    expect(() =>
+      applyAction(getProject(), {
+        type: "updateSectionRule",
+        sectionType: "hero",
+        changes: {
+          allowedVariants: ["split"]
+        }
+      })
+    )
+      .not.toThrow();
+
+    const project = getProject();
+    project.constraints.sectionRules = project.constraints.sectionRules.filter(
+      (entry) => entry.sectionType !== "hero"
+    );
+
+    expect(() =>
+      applyAction(project, {
+        type: "updateSectionRule",
+        sectionType: "hero",
+        changes: {
+          allowedVariants: ["split"]
+        }
+      })
+    ).toThrow('Section rule for type "hero" was not found.');
   });
 });

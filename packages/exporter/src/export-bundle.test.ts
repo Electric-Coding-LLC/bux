@@ -1,8 +1,8 @@
 import { canonicalProjectFixture, type JSONValue } from "@bux/core-model";
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { createExportBundleFiles } from "./bundle-files";
 import { canonicalJSONStringify } from "./canonical-json";
-import { createExportBundleFiles } from "./export-bundle";
 import { ExportValidationError, collectValidationIssues } from "./validate-project";
 
 const fixtureDirectory = join(import.meta.dir, "../../../fixtures/canonical-project");
@@ -76,6 +76,17 @@ describe("collectValidationIssues", () => {
     expect(issues.length).toBeGreaterThan(0);
     expect(issues[0]?.document).toBe("tokens.json");
     expect(issues[0]?.instancePath).toContain("/spacing/density/compact");
+  });
+
+  it("includes constraints document issues when layout rules are invalid", () => {
+    const invalidProject = structuredClone(canonicalProjectFixture);
+    invalidProject.constraints.layout.breakpoints[0]!.columns = 0;
+
+    const issues = collectValidationIssues(invalidProject);
+    const constraintIssue = issues.find((entry) => entry.document === "constraints.json");
+
+    expect(constraintIssue?.document).toBe("constraints.json");
+    expect(constraintIssue?.instancePath).toContain("/layout/breakpoints/0/columns");
   });
 
   it("includes section-kit validation issues in page scope", () => {

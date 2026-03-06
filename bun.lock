@@ -69,6 +69,19 @@
     "packages/core-model": {
       "name": "@bux/core-model",
     },
+    "packages/critic-core": {
+      "name": "@bux/critic-core",
+      "dependencies": {
+        "@bux/core-model": "workspace:*",
+      },
+    },
+    "packages/critic-rules": {
+      "name": "@bux/critic-rules",
+      "dependencies": {
+        "@bux/core-model": "workspace:*",
+        "@bux/critic-core": "workspace:*",
+      },
+    },
     "packages/exporter": {
       "name": "@bux/exporter",
       "dependencies": {
@@ -143,6 +156,10 @@
     "@bux/core-engine": ["@bux/core-engine@workspace:packages/core-engine"],
 
     "@bux/core-model": ["@bux/core-model@workspace:packages/core-model"],
+
+    "@bux/critic-core": ["@bux/critic-core@workspace:packages/critic-core"],
+
+    "@bux/critic-rules": ["@bux/critic-rules@workspace:packages/critic-rules"],
 
     "@bux/exporter": ["@bux/exporter@workspace:packages/exporter"],
 

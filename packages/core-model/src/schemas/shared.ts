@@ -2,6 +2,10 @@ export const breakpoints = ["xs", "sm", "md", "lg", "xl"] as const;
 export const densityModes = ["comfortable", "compact"] as const;
 export const stressCopyModes = ["short", "long"] as const;
 export const stressStateModes = ["default", "empty", "loading", "error"] as const;
+export const screenTypes = ["settings"] as const;
+export const settingsScreenDensities = ["comfortable", "compact", "calm"] as const;
+export const criticFindingSeverities = ["low", "medium", "high"] as const;
+export const criticVerdicts = ["pass", "warn", "fail"] as const;
 export const sectionTypes = [
   "hero",
   "featureGrid",
