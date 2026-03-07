@@ -1,4 +1,5 @@
 import type {
+  DashboardArtDirectionProfile,
   DashboardScreenBrief,
   MarketingLandingScreenBrief,
   OnboardingScreenBrief,
@@ -24,7 +25,10 @@ export type SettingsBlueprint = ScreenBlueprintBase<SettingsScreenBrief>;
 export type OnboardingBlueprint = ScreenBlueprintBase<OnboardingScreenBrief>;
 export type MarketingLandingBlueprint =
   ScreenBlueprintBase<MarketingLandingScreenBrief>;
-export type DashboardBlueprint = ScreenBlueprintBase<DashboardScreenBrief>;
+export interface DashboardBlueprint
+  extends ScreenBlueprintBase<DashboardScreenBrief> {
+  artDirectionProfiles: DashboardArtDirectionProfile[];
+}
 export type ScreenBlueprint =
   | SettingsBlueprint
   | OnboardingBlueprint

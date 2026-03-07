@@ -1,3 +1,4 @@
+import type { AdapterTarget } from "@bux/adapter-contract";
 import {
   getBlueprintsForScreenType,
   getDefaultBlueprintId
@@ -6,6 +7,7 @@ import { applyAction } from "@bux/core-engine";
 import { evaluateScreen } from "@bux/critic-rules";
 import {
   type BreakpointName,
+  type DashboardArtDirectionProfile,
   type DashboardScreenDensity,
   type DensityMode,
   type MarketingLandingDensity,
@@ -22,6 +24,10 @@ import { collectValidationIssues } from "@bux/exporter/browser";
 import { PlaygroundPreview, resolvePreviewLayout } from "@bux/preview-runtime";
 import { createSectionDraft } from "@bux/section-kit";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import {
+  defaultAdapterTarget,
+  getAdapterTargetLabel
+} from "./adapter-targets";
 import { BlueprintLibraryPanel } from "./blueprint-library-panel";
 import {
   generateCandidates,
@@ -44,6 +50,7 @@ import { CriticPanel } from "./critic-panel";
 import { evaluateExportReadiness } from "./export-readiness";
 import {
   canUseDirectoryPicker,
+  exportProjectToDirectoryHandle,
   isPickerAbort,
   loadProjectFromDirectoryHandle,
   promptForDirectory,
@@ -152,6 +159,9 @@ export function App() {
   const [activeBlueprintId, setActiveBlueprintId] = useState<string | null>(
     getDefaultBlueprintId("settings")
   );
+  const [adapterTarget, setAdapterTarget] = useState<AdapterTarget>(
+    defaultAdapterTarget
+  );
   const [newSectionType, setNewSectionType] = useState<SectionType>("settings");
   const [activeBreakpoint, setActiveBreakpoint] = useState<BreakpointName>("md");
   const [projectDirectoryHandle, setProjectDirectoryHandle] =
@@ -160,7 +170,8 @@ export function App() {
     serializeProjectFingerprint(
       createStarterProject("settings"),
       createInitialBrief("settings"),
-      getDefaultBlueprintId("settings")
+      getDefaultBlueprintId("settings"),
+      defaultAdapterTarget
     )
   );
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
@@ -215,8 +226,8 @@ export function App() {
   );
   const supportsDirectoryPicker = canUseDirectoryPicker();
   const currentFingerprint = useMemo(
-    () => serializeProjectFingerprint(project, brief, activeBlueprintId),
-    [activeBlueprintId, brief, project]
+    () => serializeProjectFingerprint(project, brief, activeBlueprintId, adapterTarget),
+    [activeBlueprintId, adapterTarget, brief, project]
   );
   const previewLayout = useMemo(
     () => resolvePreviewLayout(project, activeBreakpoint),
@@ -283,6 +294,18 @@ export function App() {
           };
       }
     });
+  }
+
+  function setDashboardArtDirection(value: DashboardArtDirectionProfile) {
+    setRepairHistory([]);
+    setBrief((current) =>
+      current.screenType === "dashboard"
+        ? {
+            ...current,
+            artDirection: value
+          }
+        : current
+    );
   }
 
   function applySelectedBlueprint() {
@@ -452,12 +475,14 @@ export function App() {
     directoryHandle: FileSystemDirectoryHandle | null,
     nextNotice: ProjectNotice,
     nextBrief = deriveBriefFromProject(nextProject, brief),
-    nextActiveBlueprintId: string | null = null
+    nextActiveBlueprintId: string | null = null,
+    nextAdapterTarget: AdapterTarget = defaultAdapterTarget
   ) {
     const fingerprint = serializeProjectFingerprint(
       nextProject,
       nextBrief,
-      nextActiveBlueprintId
+      nextActiveBlueprintId,
+      nextAdapterTarget
     );
 
     startTransition(() => {
@@ -465,6 +490,7 @@ export function App() {
       setBrief(nextBrief);
       setProjectDirectoryHandle(directoryHandle);
       setActiveBlueprintId(nextActiveBlueprintId);
+      setAdapterTarget(nextAdapterTarget);
       setRepairHistory([]);
       setSavedFingerprint(fingerprint);
       setActiveBreakpoint(resolvePreviewLayout(nextProject, activeBreakpoint).breakpoint);
@@ -479,13 +505,15 @@ export function App() {
     const fingerprint = serializeProjectFingerprint(
       nextProject,
       nextBrief,
-      nextDefaultBlueprintId
+      nextDefaultBlueprintId,
+      adapterTarget
     );
 
     startTransition(() => {
       setProject(nextProject);
       setBrief(nextBrief);
       setActiveBlueprintId(nextDefaultBlueprintId);
+      setAdapterTarget(adapterTarget);
       setRepairHistory([]);
       setProjectDirectoryHandle(null);
       setSavedFingerprint(fingerprint);
@@ -522,7 +550,8 @@ export function App() {
             message: `Opened project from ${directoryHandle.name}.`
           },
           nextBrief,
-          loadedState.activeBlueprintId
+          loadedState.activeBlueprintId,
+          loadedState.adapterTarget
         );
       } catch (error) {
         if (isPickerAbort(error)) {
@@ -549,7 +578,8 @@ export function App() {
           directoryHandle,
           project,
           brief,
-          activeBlueprintId
+          activeBlueprintId,
+          adapterTarget
         );
 
         setProjectDirectoryHandle(directoryHandle);
@@ -576,24 +606,25 @@ export function App() {
     if (!exportReadiness.canExport) {
       setNotice({
         tone: "error",
-        message: `Export blocked. ${exportReadiness.summary}`
+        message: `Export blocked for ${getAdapterTargetLabel(adapterTarget)}. ${exportReadiness.summary}`
       });
       return;
     }
 
-    await withBusyState("Exporting bundle...", async () => {
+    await withBusyState(`Exporting ${getAdapterTargetLabel(adapterTarget)} bundle...`, async () => {
       try {
         const directoryHandle = await promptForDirectory("save");
-        const savedFiles = await saveProjectToDirectoryHandle(
+        const savedFiles = await exportProjectToDirectoryHandle(
           directoryHandle,
           project,
-          brief,
-          activeBlueprintId
+          adapterTarget
         );
 
         setNotice({
           tone: "success",
-          message: `Exported ${savedFiles.length} canonical files to ${directoryHandle.name}.`
+          message: `Exported ${savedFiles.length} artifacts to ${directoryHandle.name} for ${getAdapterTargetLabel(
+            adapterTarget
+          )}.`
         });
       } catch (error) {
         if (isPickerAbort(error)) {
@@ -622,6 +653,7 @@ export function App() {
         </header>
 
         <ProjectToolbar
+          adapterTarget={adapterTarget}
           exportReadiness={exportReadiness}
           projectName={projectName}
           isDirty={isDirty}
@@ -629,6 +661,7 @@ export function App() {
           supportsDirectoryPicker={supportsDirectoryPicker}
           notice={notice}
           onCreateNew={createFreshProject}
+          onAdapterTargetChange={setAdapterTarget}
           onOpen={openProject}
           onSave={() => saveProject(false)}
           onSaveAs={() => saveProject(true)}
@@ -637,6 +670,7 @@ export function App() {
 
         <ScreenBriefEditor
           brief={brief}
+          onArtDirectionChange={setDashboardArtDirection}
           onScreenTypeChange={switchScreenType}
           onTitleChange={setBriefTitle}
           onDensityChange={setBriefDensity}

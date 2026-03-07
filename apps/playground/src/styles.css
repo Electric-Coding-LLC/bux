@@ -124,6 +124,19 @@ body {
   cursor: not-allowed;
 }
 
+.project-export-target {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.project-export-caption {
+  margin: 0;
+  color: #475569;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .status-chip {
   flex-shrink: 0;
   border-radius: 999px;
@@ -926,6 +939,105 @@ body {
   color: #1d4ed8;
 }
 
+.dashboard-reference-pack {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid #d9e6df;
+  background: linear-gradient(180deg, #f7fbf8 0%, #eef7f2 100%);
+}
+
+.dashboard-reference-pack-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.dashboard-reference-pack-header h3 {
+  margin: 0 0 0.2rem 0;
+  color: #0f172a;
+  font-size: 0.96rem;
+}
+
+.dashboard-reference-pack-header p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.dashboard-reference-pack-header span {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #166534;
+  padding: 0.28rem 0.58rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.dashboard-reference-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.dashboard-reference-card {
+  border: 1px solid #d6ede0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 0.8rem 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dashboard-reference-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.dashboard-reference-card-header strong {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.dashboard-reference-card-header span {
+  border-radius: 999px;
+  background: #e8f5ec;
+  color: #166534;
+  padding: 0.22rem 0.48rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.dashboard-reference-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.dashboard-reference-signals,
+.candidate-reference-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.dashboard-reference-signals span,
+.reference-signal {
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 0.25rem 0.52rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .candidate-list-header {
   display: grid;
   gap: 0.2rem;
@@ -1060,6 +1172,116 @@ body {
 
 .candidate-intent {
   color: #0f172a;
+}
+
+.candidate-preview-review {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.candidate-preview-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.candidate-preview-review-header strong {
+  color: #0f172a;
+  font-size: 0.8rem;
+}
+
+.candidate-preview-review-header span {
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 0.24rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.candidate-preview-frame {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #dbe2ea;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.98));
+  height: 230px;
+}
+
+.candidate-preview-scale {
+  width: calc(100% / 0.4);
+  transform: scale(0.4);
+  transform-origin: top left;
+}
+
+.candidate-card.active .candidate-preview-frame {
+  border-color: #99f6e4;
+}
+
+.candidate-reference-fit {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.72rem 0.76rem;
+  border-radius: 12px;
+  border: 1px solid #d9e6df;
+  background: #f8fcfa;
+}
+
+.candidate-reference-fit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.candidate-reference-fit-header strong {
+  color: #0f172a;
+  font-size: 0.8rem;
+}
+
+.candidate-reference-fit-header span {
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0.24rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.candidate-reference-fit p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.candidate-reference-fit-strong {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.candidate-reference-fit-strong .candidate-reference-fit-header span,
+.reference-signal.matched {
+  color: #166534;
+}
+
+.candidate-reference-fit-mixed {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.candidate-reference-fit-mixed .candidate-reference-fit-header span {
+  color: #1d4ed8;
+}
+
+.candidate-reference-fit-drifting {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.candidate-reference-fit-drifting .candidate-reference-fit-header span,
+.reference-signal.missing {
+  color: #9a3412;
 }
 
 .candidate-export-summary {

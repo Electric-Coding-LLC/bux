@@ -1,4 +1,5 @@
 import type {
+  DashboardArtDirectionProfile,
   DashboardScreenDensity,
   MarketingLandingDensity,
   OnboardingScreenDensity,
@@ -6,9 +7,11 @@ import type {
   ScreenType,
   SettingsScreenDensity
 } from "@bux/core-model";
+import { dashboardArtDirectionOptions } from "./dashboard-art-direction";
 
 interface ScreenBriefEditorProps {
   brief: ScreenBrief;
+  onArtDirectionChange: (artDirection: DashboardArtDirectionProfile) => void;
   onDensityChange: (
     density:
       | DashboardScreenDensity
@@ -145,6 +148,7 @@ const screenTypeLabels: Record<ScreenType, string> = {
 
 export function ScreenBriefEditor({
   brief,
+  onArtDirectionChange,
   onDensityChange,
   onScreenTypeChange,
   onTitleChange
@@ -210,6 +214,43 @@ export function ScreenBriefEditor({
           );
         })}
       </div>
+
+      {brief.screenType === "dashboard" ? (
+        <>
+          <div className="panel-title-row">
+            <div>
+              <h3>Art Direction</h3>
+              <p className="panel-caption">
+                Bias dashboard generation toward one named taste profile before you compare
+                candidates.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="brief-density-grid"
+            role="list"
+            aria-label="dashboard art direction"
+          >
+            {dashboardArtDirectionOptions.map((option) => {
+              const selected = option.value === brief.artDirection;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`brief-density-card${selected ? " selected" : ""}`}
+                  onClick={() => onArtDirectionChange(option.value)}
+                  aria-pressed={selected}
+                >
+                  <strong>{option.label}</strong>
+                  <span>{option.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
 
       <p className="brief-help">
         The brief title stays synced with the candidate title used by the playground and exports.

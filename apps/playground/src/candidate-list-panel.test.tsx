@@ -1,9 +1,14 @@
-import { canonicalProjectFixture, type CriticReport, type PlaygroundProject } from "@bux/core-model";
+import {
+  canonicalProjectFixture,
+  type CriticReport,
+  type PlaygroundProject
+} from "@bux/core-model";
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CandidateListPanel } from "./candidate-list-panel";
-import type { GeneratedSettingsCandidate } from "./candidate-generation";
+import { generateCandidates, type GeneratedCandidate, type GeneratedSettingsCandidate } from "./candidate-generation";
 import type { WorkbenchStandingSummary } from "./candidate-triage";
+import { createInitialBrief } from "./screen-workbench";
 import { createInitialSettingsBrief } from "./settings-workbench";
 
 function makeProject(title: string): PlaygroundProject {
@@ -106,5 +111,45 @@ describe("CandidateListPanel", () => {
     expect(html).toContain("Top score");
     expect(html).toContain("Use current version");
     expect(html).toContain("Open approved version");
+  });
+
+  it("renders the dashboard reference canon and per-candidate fit summaries", () => {
+    const brief = {
+      ...createInitialBrief("dashboard"),
+      artDirection: "commandCenter" as const
+    };
+    const candidates = generateCandidates(
+      structuredClone(canonicalProjectFixture),
+      brief
+    );
+    const activeCandidate = candidates.find(
+      (candidate) => candidate.blueprint.id === "ops-radar"
+    ) as GeneratedCandidate;
+
+    const html = renderToStaticMarkup(
+      <CandidateListPanel
+        activeBlueprintId={activeCandidate.blueprint.id}
+        activeExportReadiness={activeCandidate.exportReadiness}
+        activeProject={activeCandidate.project}
+        activeReport={activeCandidate.report}
+        brief={brief}
+        candidates={candidates}
+        onLoadCandidate={() => {}}
+        workbenchStanding={{
+          label: "Export the current version",
+          status: "approved",
+          summary: "The current version is ready to export and matches the strongest approved option."
+        } satisfies WorkbenchStandingSummary}
+      />
+    );
+
+    expect(html).toContain("Reference Canon");
+    expect(html).toContain("Reference canon for sharper operator dashboards");
+    expect(html).toContain("Control room pulse");
+    expect(html).toContain("Visual review");
+    expect(html).toContain("Live preview");
+    expect(html).toContain("Ops Radar preview");
+    expect(html).toContain("Strong reference fit");
+    expect(html).toContain("Drifting from the reference canon");
   });
 });

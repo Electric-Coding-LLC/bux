@@ -214,7 +214,8 @@ export const canonicalDashboardScreenBriefFixture: DashboardScreenBrief = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
   screenType: "dashboard",
   title: "Team operations pulse",
-  density: "operational"
+  density: "operational",
+  artDirection: "quietSignal"
 };
 
 export const canonicalCriticReportFixture: CriticReport = {

@@ -4,6 +4,7 @@ import type {
   PlaygroundProject,
   ScreenBrief
 } from "@bux/core-model";
+import { PlaygroundPreview } from "@bux/preview-runtime";
 import type { GeneratedCandidate } from "./candidate-generation";
 import {
   summarizeActiveBlueprintStatus,
@@ -11,6 +12,10 @@ import {
   summarizeCandidateLeads,
   type WorkbenchStandingSummary
 } from "./candidate-triage";
+import {
+  getDashboardReferencePack,
+  summarizeDashboardVisualCompare
+} from "./dashboard-visual-compare";
 import type { ExportReadiness } from "./export-readiness";
 
 interface CandidateListPanelProps {
@@ -44,6 +49,10 @@ function panelCopy(canExport: boolean): string {
     : "The current version still needs repair. Pick an approved fallback or open another version to keep working.";
 }
 
+function shouldShowVisualReview(brief: ScreenBrief): boolean {
+  return brief.screenType === "dashboard";
+}
+
 export function CandidateListPanel({
   activeBlueprintId,
   activeExportReadiness,
@@ -54,12 +63,21 @@ export function CandidateListPanel({
   onLoadCandidate,
   workbenchStanding
 }: CandidateListPanelProps) {
+  const showVisualReview = shouldShowVisualReview(brief);
+  const screenTypeChipLabel =
+    brief.screenType === "dashboard"
+      ? `${brief.density} · ${getDashboardReferencePack(brief.artDirection).profileLabel}`
+      : brief.density;
   const candidateLeads = summarizeCandidateLeads(candidates);
   const recommendation = summarizeCandidateRecommendation(
     activeReport,
     activeExportReadiness,
     candidates
   );
+  const dashboardReferencePack =
+    brief.screenType === "dashboard"
+      ? getDashboardReferencePack(brief.artDirection)
+      : null;
   const activeBlueprintStatus = summarizeActiveBlueprintStatus(
     activeBlueprintId,
     activeProject,
@@ -77,7 +95,7 @@ export function CandidateListPanel({
           <h2>Pick what to keep editing or export</h2>
           <p className="candidate-panel-copy">{panelCopy(activeExportReadiness.canExport)}</p>
         </div>
-        <span className="screen-type-chip">{brief.density}</span>
+        <span className="screen-type-chip">{screenTypeChipLabel}</span>
       </div>
 
       <section className={`workbench-standing workbench-standing-${workbenchStanding.status}`}>
@@ -95,6 +113,35 @@ export function CandidateListPanel({
           <span>{activeExportReadiness.canExport ? "Ready to export" : "Needs repair"}</span>
         </div>
       </section>
+
+      {dashboardReferencePack ? (
+        <section className="dashboard-reference-pack">
+          <div className="dashboard-reference-pack-header">
+            <div>
+              <p className="critic-eyebrow">Reference Canon</p>
+              <h3>{dashboardReferencePack.title}</h3>
+              <p>{dashboardReferencePack.summary}</p>
+            </div>
+            <span>{dashboardReferencePack.profileLabel}</span>
+          </div>
+          <div className="dashboard-reference-grid">
+            {dashboardReferencePack.references.map((reference) => (
+              <article key={reference.id} className="dashboard-reference-card">
+                <div className="dashboard-reference-card-header">
+                  <strong>{reference.label}</strong>
+                  <span>{reference.signals.length} cues</span>
+                </div>
+                <p>{reference.summary}</p>
+                <div className="dashboard-reference-signals">
+                  {reference.signals.map((signal) => (
+                    <span key={signal}>{signal}</span>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {recommendation ? (
         <section
@@ -199,6 +246,7 @@ export function CandidateListPanel({
             candidateLeads.bestOverall?.blueprint.id === candidate.blueprint.id;
           const isBestExportReady =
             candidateLeads.bestExportReady?.blueprint.id === candidate.blueprint.id;
+          const visualCompare = summarizeDashboardVisualCompare(candidate);
 
           return (
             <li key={candidate.blueprint.id} className={`candidate-card${isActive ? " active" : ""}`}>
@@ -230,6 +278,48 @@ export function CandidateListPanel({
               </div>
               <p className="candidate-description">{candidate.blueprint.description}</p>
               <p className="candidate-intent">{candidate.blueprint.hierarchyIntent}</p>
+              {showVisualReview ? (
+                <section className="candidate-preview-review">
+                  <div className="candidate-preview-review-header">
+                    <strong>Visual review</strong>
+                    <span>Live preview</span>
+                  </div>
+                  <div className="candidate-preview-frame" aria-label={`${candidate.blueprint.name} preview`}>
+                    <div className="candidate-preview-scale">
+                      <PlaygroundPreview project={candidate.project} activeBreakpoint="md" />
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+              {visualCompare ? (
+                <section
+                  className={`candidate-reference-fit candidate-reference-fit-${visualCompare.status}`}
+                >
+                  <div className="candidate-reference-fit-header">
+                    <strong>{visualCompare.label}</strong>
+                    <span>{visualCompare.scoreLabel}</span>
+                  </div>
+                  <p>{visualCompare.summary}</p>
+                  <div className="candidate-reference-signals">
+                    {visualCompare.matchedSignals.slice(0, 2).map((signal) => (
+                      <span
+                        key={`${candidate.blueprint.id}-${signal}`}
+                        className="reference-signal matched"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                    {visualCompare.missingSignals.slice(0, 1).map((signal) => (
+                      <span
+                        key={`${candidate.blueprint.id}-missing-${signal}`}
+                        className="reference-signal missing"
+                      >
+                        Needs {signal}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               <p
                 className={`candidate-export-summary candidate-export-summary-${candidate.exportReadiness.status}`}
               >

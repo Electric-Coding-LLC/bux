@@ -136,4 +136,38 @@ describe("generateSettingsCandidates", () => {
       )
     ).toBe(true);
   });
+
+  it("generates materially different dashboard candidates across art-direction profiles", () => {
+    const quietBrief = createInitialBrief("dashboard");
+    const commandBrief = {
+      ...quietBrief,
+      artDirection: "commandCenter" as const
+    };
+
+    const quietCandidates = generateCandidates(
+      structuredClone(canonicalProjectFixture),
+      quietBrief
+    );
+    const commandCandidates = generateCandidates(
+      structuredClone(canonicalProjectFixture),
+      commandBrief
+    );
+
+    const quietRadar = quietCandidates.find(
+      (candidate) => candidate.blueprint.id === "ops-radar"
+    );
+    const commandRadar = commandCandidates.find(
+      (candidate) => candidate.blueprint.id === "ops-radar"
+    );
+
+    expect(quietRadar).toBeDefined();
+    expect(commandRadar).toBeDefined();
+    expect(
+      quietRadar?.project.tokens.colors.roles["accent.primary"]
+    ).not.toBe(commandRadar?.project.tokens.colors.roles["accent.primary"]);
+    expect(quietRadar?.project.page.sections[0]?.variant).toBe("minimal");
+    expect(commandRadar?.project.page.sections[0]?.variant).toBe("cards");
+    expect(quietRadar?.project.page.sections[2]?.variant).toBe("simple");
+    expect(commandRadar?.project.page.sections[2]?.variant).toBe("detailed");
+  });
 });

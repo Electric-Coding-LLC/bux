@@ -17,6 +17,7 @@ import {
   type ScreenType,
   type SettingsScreenBrief
 } from "@bux/core-model";
+import { applyDashboardArtDirection } from "./dashboard-art-direction";
 
 export function createInitialBrief(screenType: "settings"): SettingsScreenBrief;
 export function createInitialBrief(
@@ -63,6 +64,10 @@ export function applyBlueprintToProject<TBrief extends ScreenBrief>(
   }
 
   nextProject.page.title = page.title;
+
+  if (brief.screenType === "dashboard") {
+    nextProject = applyDashboardArtDirection(nextProject, brief.artDirection);
+  }
 
   return nextProject;
 }
