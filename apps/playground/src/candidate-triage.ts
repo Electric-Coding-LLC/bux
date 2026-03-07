@@ -107,70 +107,70 @@ export function summarizeWorkbenchStanding(
 
   if (!bestOverall) {
     return {
-      label: "No ranked field yet",
+      label: "Keep editing this version",
       status: exportReadiness.canExport ? "approved" : "neutral",
-      summary: "The active workbench candidate is the only candidate in play right now."
+      summary: "There are no other ranked versions yet, so keep working in the current editor state."
     };
   }
 
   if (exportReadiness.canExport && !bestExportReady) {
     return {
-      label: "Only export-ready option",
+      label: "Export the current version",
       status: "approved",
       summary:
-        "The active workbench candidate currently clears export while every generated candidate still needs repair."
+        "The current version is ready to export, and every generated version still needs repair."
     };
   }
 
   if (exportReadiness.canExport && strongerOrEqual(report, bestOverall.report)) {
     return {
-      label: "Strongest overall",
+      label: "Export the current version",
       status: "approved",
-      summary: `The active workbench candidate now matches or beats ${bestOverall.blueprint.name} and is ready to export.`
+      summary: `The current version is ready to export and is at least as strong as ${bestOverall.blueprint.name}, the top-ranked generated option.`
     };
   }
 
   if (!exportReadiness.canExport && strongerOrEqual(report, bestOverall.report)) {
     const exportReferenceSummary = bestExportReady
-      ? ` ${bestExportReady.blueprint.name} remains the current export-ready reference.`
+      ? ` ${bestExportReady.blueprint.name} is still the best approved fallback if you need to export now.`
       : "";
 
     return {
-      label: "Highest score, still blocked",
+      label: "Fix blockers or switch to an approved version",
       status: "blocked",
-      summary: `The active workbench candidate currently matches or beats ${bestOverall.blueprint.name} on critic strength, but export remains blocked.${exportReferenceSummary}`
+      summary: `The current version scores at least as well as ${bestOverall.blueprint.name}, but it still cannot export.${exportReferenceSummary}`
     };
   }
 
   if (exportReadiness.canExport && bestExportReady && strongerOrEqual(report, bestExportReady.report)) {
     return {
-      label: "Strongest export-ready",
+      label: "Export the current version",
       status: "approved",
-      summary: `The active workbench candidate is ready to export and now matches or beats ${bestExportReady.blueprint.name}, even though ${bestOverall.blueprint.name} still leads overall.`
+      summary: `The current version is ready to export and is at least as strong as ${bestExportReady.blueprint.name}, the strongest approved generated option.`
     };
   }
 
   if (!bestExportReady) {
     return {
-      label: "No export-ready reference yet",
+      label: "Keep repairing the current version",
       status: "blocked",
       summary:
-        "The active workbench candidate is still blocked, and no generated candidate has cleared export yet."
+        "The current version is still blocked, and none of the generated versions are ready to export yet."
     };
   }
 
   if (exportReadiness.canExport) {
     return {
-      label: "Approved, chasing the field",
+      label: "Export now or switch to a stronger approved version",
       status: "approved",
-      summary: `The active workbench candidate is ready to export, but ${bestOverall.blueprint.name} still leads the ranked field overall.`
+      summary: `The current version is ready to export, but ${bestExportReady.blueprint.name} is still the strongest approved option in the ranked list.`
     };
   }
 
   return {
-    label: "Blocked, chasing the field",
+    label: "Use an approved version or keep repairing",
     status: "blocked",
-    summary: `The active workbench candidate is still blocked and trails export-ready reference ${bestExportReady.blueprint.name}.`
+    summary: `The current version is still blocked. ${bestExportReady.blueprint.name} is the best approved version if you need an exportable baseline now.`
   };
 }
 
@@ -179,10 +179,10 @@ function summarizeRecommendationContext(
   bestExportReady: GeneratedCandidate
 ): string {
   if (!bestOverall || bestOverall.blueprint.id === bestExportReady.blueprint.id) {
-    return " It also leads the ranked field overall.";
+    return " It also has the strongest score in the ranked list.";
   }
 
-  return ` ${bestOverall.blueprint.name} still leads overall, but remains blocked.`;
+  return ` ${bestOverall.blueprint.name} still has the top score, but it is not ready to export.`;
 }
 
 export function summarizeCandidateRecommendation(
@@ -202,11 +202,11 @@ export function summarizeCandidateRecommendation(
 
   if (!exportReadiness.canExport && strongerOrEqual(report, bestExportReady.report)) {
     return {
-      actionLabel: "Load export-ready reference",
+      actionLabel: "Use this version",
       candidate: bestExportReady,
-      label: "Export-ready fallback",
+      label: "Fastest approved path",
       status: "blocked",
-      summary: `${bestExportReady.blueprint.name} is the strongest candidate that already clears export. Load it if you need an approved baseline now while the active candidate stays blocked.${summarizeRecommendationContext(
+      summary: `${bestExportReady.blueprint.name} is already approved for export. Use it if you need a clean baseline now while the current version stays blocked.${summarizeRecommendationContext(
         bestOverall,
         bestExportReady
       )}`
@@ -215,11 +215,11 @@ export function summarizeCandidateRecommendation(
 
   if (!exportReadiness.canExport) {
     return {
-      actionLabel: "Load export-ready reference",
+      actionLabel: "Use this version",
       candidate: bestExportReady,
-      label: "Recommended export-ready candidate",
+      label: "Recommended approved version",
       status: "blocked",
-      summary: `${bestExportReady.blueprint.name} is the strongest candidate that already clears export. Load it to continue from an approved baseline while the active candidate remains blocked.${summarizeRecommendationContext(
+      summary: `${bestExportReady.blueprint.name} is the strongest version that already clears export. Use it to continue from an approved baseline while the current version remains blocked.${summarizeRecommendationContext(
         bestOverall,
         bestExportReady
       )}`
@@ -227,11 +227,11 @@ export function summarizeCandidateRecommendation(
   }
 
   return {
-    actionLabel: "Load stronger approved candidate",
+    actionLabel: "Use this version",
     candidate: bestExportReady,
-    label: "Stronger export-ready option",
+    label: "Stronger approved version",
     status: "approved",
-    summary: `${bestExportReady.blueprint.name} is currently the strongest export-ready candidate. Load it if you want the best approved option before exporting.${summarizeRecommendationContext(
+    summary: `${bestExportReady.blueprint.name} is currently the strongest approved version. Use it if you want the best ready-to-export option before exporting.${summarizeRecommendationContext(
       bestOverall,
       bestExportReady
     )}`
@@ -352,9 +352,9 @@ export function summarizeActiveBlueprintStatus(
         comparison,
         canRestoreBaseline: false,
         candidate,
-        label: "Matching approved blueprint",
+        label: "Current version still matches its blueprint",
         status: "approved",
-        summary: `${candidate.blueprint.name} is the active blueprint source, and the editor still matches that approved baseline exactly.`
+        summary: `${candidate.blueprint.name} is the loaded blueprint, and the current version still matches it exactly.`
       };
     }
 
@@ -362,9 +362,9 @@ export function summarizeActiveBlueprintStatus(
       comparison,
       canRestoreBaseline: false,
       candidate,
-      label: "Matching blocked blueprint",
+      label: "Current version still matches the blocked blueprint",
       status: "blocked",
-      summary: `${candidate.blueprint.name} is the active blueprint source, and the editor still matches that current baseline, but it remains blocked for export.`
+      summary: `${candidate.blueprint.name} is the loaded blueprint, and the current version still matches it, but that baseline is still blocked for export.`
     };
   }
 
@@ -375,9 +375,9 @@ export function summarizeActiveBlueprintStatus(
     comparison,
     canRestoreBaseline: true,
     candidate,
-    label: exportReadiness.canExport ? "Customized from blueprint" : "Drifted from blueprint",
+    label: "Current version changed from its blueprint",
     status: exportReadiness.canExport ? "approved" : "blocked",
-    summary: `The active editor state has diverged from the current ${candidate.blueprint.name} blueprint baseline. Compared with that baseline, it is ${summarizeRelativeScore(
+    summary: `The current editor state no longer matches ${candidate.blueprint.name}. Compared with that blueprint, it is ${summarizeRelativeScore(
       scoreDelta
     )}, has ${summarizeRelativeFindings(findingDelta)}, and ${summarizeRelativeExportStatus(
       exportReadiness,
@@ -434,9 +434,9 @@ export function summarizeBlockedCandidateGap(
     blockedReasons: [...exportReadiness.blockedReasons],
     findingGap,
     scoreGap,
-    summary: `${bestExportReady.blueprint.name} is the current export-ready reference at score ${
+    summary: `${bestExportReady.blueprint.name} is the best approved version right now at score ${
       bestExportReady.report.score
-    } with ${bestExportReady.report.findings.length} findings. Current candidate is ${summarizeScoreGap(
+    } with ${bestExportReady.report.findings.length} findings. The current version is ${summarizeScoreGap(
       scoreGap
     )} and has ${summarizeFindingGap(findingGap)}.`
   };

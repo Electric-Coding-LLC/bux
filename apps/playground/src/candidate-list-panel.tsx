@@ -38,6 +38,12 @@ function formatDelta(value: number, suffix = ""): string {
   return `${value}${suffix}`;
 }
 
+function panelCopy(canExport: boolean): string {
+  return canExport
+    ? "The current version is ready to export. You can keep it, or switch to a stronger option below."
+    : "The current version still needs repair. Pick an approved fallback or open another version to keep working.";
+}
+
 export function CandidateListPanel({
   activeBlueprintId,
   activeExportReadiness,
@@ -67,99 +73,16 @@ export function CandidateListPanel({
     <section className="candidate-panel">
       <div className="candidate-panel-header">
         <div>
-          <p className="critic-eyebrow">Generated Candidates</p>
-          <h2>Ranked from the current brief</h2>
-          <p className="candidate-panel-copy">
-            Deterministic candidates generated from authored blueprints and scored with the current critic.
-          </p>
-          <div className="candidate-lead-summary">
-            <span>
-              Best overall: {candidateLeads.bestOverall?.blueprint.name ?? "None"}
-            </span>
-            <span>
-              Best export-ready: {candidateLeads.bestExportReady?.blueprint.name ?? "None yet"}
-            </span>
-          </div>
+          <p className="critic-eyebrow">Choose A Version</p>
+          <h2>Pick what to keep editing or export</h2>
+          <p className="candidate-panel-copy">{panelCopy(activeExportReadiness.canExport)}</p>
         </div>
         <span className="screen-type-chip">{brief.density}</span>
       </div>
 
-      {recommendation ? (
-        <section className={`candidate-recommendation candidate-recommendation-${recommendation.status}`}>
-          <div className="candidate-recommendation-header">
-            <div>
-              <h3>{recommendation.label}</h3>
-              <span>{recommendation.candidate.blueprint.name}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onLoadCandidate(recommendation.candidate)}
-            >
-              {recommendation.actionLabel}
-            </button>
-          </div>
-          <p>{recommendation.summary}</p>
-        </section>
-      ) : null}
-
-      {activeBlueprintStatus ? (
-        <section className={`active-blueprint-status active-blueprint-status-${activeBlueprintStatus.status}`}>
-          <div className="active-blueprint-status-header">
-            <div>
-              <h3>{activeBlueprintStatus.label}</h3>
-              <span>{activeBlueprintStatus.candidate.blueprint.name}</span>
-            </div>
-            <div className="active-blueprint-status-actions">
-              <span className="active-blueprint-status-chip">
-                {activeBlueprintStatus.status === "approved" ? "Approved" : "Blocked"}
-              </span>
-              {activeBlueprintStatus.canRestoreBaseline ? (
-                <button
-                  type="button"
-                  onClick={() => onLoadCandidate(activeBlueprintStatus.candidate)}
-                >
-                  Restore blueprint baseline
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <p>{activeBlueprintStatus.summary}</p>
-          <div className="active-blueprint-compare">
-            <div className="active-blueprint-compare-row">
-              <strong>Score</strong>
-              <span>
-                {activeBlueprintStatus.comparison.scores.current} vs{" "}
-                {activeBlueprintStatus.comparison.scores.baseline}
-              </span>
-              <span>{formatDelta(activeBlueprintStatus.comparison.scoreDelta)}</span>
-            </div>
-            <div className="active-blueprint-compare-row">
-              <strong>Findings</strong>
-              <span>
-                {activeBlueprintStatus.comparison.findings.current} vs{" "}
-                {activeBlueprintStatus.comparison.findings.baseline}
-              </span>
-              <span>{formatDelta(activeBlueprintStatus.comparison.findingDelta)}</span>
-            </div>
-            <div className="active-blueprint-compare-row">
-              <strong>Export</strong>
-              <span>
-                {activeBlueprintStatus.comparison.exportStatus.current === "approved"
-                  ? "Ready"
-                  : "Blocked"}{" "}
-                vs{" "}
-                {activeBlueprintStatus.comparison.exportStatus.baseline === "approved"
-                  ? "Ready"
-                  : "Blocked"}
-              </span>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       <section className={`workbench-standing workbench-standing-${workbenchStanding.status}`}>
         <div className="workbench-standing-header">
-          <h3>Workbench Standing</h3>
+          <h3>Next step</h3>
           <span>{workbenchStanding.label}</span>
         </div>
         <p>{workbenchStanding.summary}</p>
@@ -169,9 +92,102 @@ export function CandidateListPanel({
           </span>
           <span>Score {activeReport.score}</span>
           <span>{activeReport.findings.length} findings</span>
-          <span>{activeExportReadiness.canExport ? "Export ready" : "Blocked"}</span>
+          <span>{activeExportReadiness.canExport ? "Ready to export" : "Needs repair"}</span>
         </div>
       </section>
+
+      {recommendation ? (
+        <section
+          className={`candidate-recommendation candidate-recommendation-${recommendation.status}`}
+        >
+          <div className="candidate-recommendation-header">
+            <div>
+              <h3>{recommendation.label}</h3>
+              <span>{recommendation.candidate.blueprint.name}</span>
+            </div>
+            <button type="button" onClick={() => onLoadCandidate(recommendation.candidate)}>
+              {recommendation.actionLabel}
+            </button>
+          </div>
+          <p>{recommendation.summary}</p>
+        </section>
+      ) : null}
+
+      <details className="candidate-supporting-details">
+        <summary>Why these versions are ordered this way</summary>
+        <div className="candidate-supporting-content">
+          <div className="candidate-lead-summary">
+            <span>Top score: {candidateLeads.bestOverall?.blueprint.name ?? "None yet"}</span>
+            <span>
+              Ready to export now:{" "}
+              {candidateLeads.bestExportReady?.blueprint.name ?? "None yet"}
+            </span>
+          </div>
+
+          {activeBlueprintStatus ? (
+            <section
+              className={`active-blueprint-status active-blueprint-status-${activeBlueprintStatus.status}`}
+            >
+              <div className="active-blueprint-status-header">
+                <div>
+                  <h3>{activeBlueprintStatus.label}</h3>
+                  <span>{activeBlueprintStatus.candidate.blueprint.name}</span>
+                </div>
+                <div className="active-blueprint-status-actions">
+                  <span className="active-blueprint-status-chip">
+                    {activeBlueprintStatus.status === "approved" ? "Ready" : "Blocked"}
+                  </span>
+                  {activeBlueprintStatus.canRestoreBaseline ? (
+                    <button
+                      type="button"
+                      onClick={() => onLoadCandidate(activeBlueprintStatus.candidate)}
+                    >
+                      Restore blueprint baseline
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <p>{activeBlueprintStatus.summary}</p>
+              <div className="active-blueprint-compare">
+                <div className="active-blueprint-compare-row">
+                  <strong>Score</strong>
+                  <span>
+                    Current {activeBlueprintStatus.comparison.scores.current}, blueprint{" "}
+                    {activeBlueprintStatus.comparison.scores.baseline}
+                  </span>
+                  <span>{formatDelta(activeBlueprintStatus.comparison.scoreDelta)}</span>
+                </div>
+                <div className="active-blueprint-compare-row">
+                  <strong>Findings</strong>
+                  <span>
+                    Current {activeBlueprintStatus.comparison.findings.current}, blueprint{" "}
+                    {activeBlueprintStatus.comparison.findings.baseline}
+                  </span>
+                  <span>{formatDelta(activeBlueprintStatus.comparison.findingDelta)}</span>
+                </div>
+                <div className="active-blueprint-compare-row">
+                  <strong>Export</strong>
+                  <span>
+                    Current{" "}
+                    {activeBlueprintStatus.comparison.exportStatus.current === "approved"
+                      ? "ready"
+                      : "blocked"}
+                    , blueprint{" "}
+                    {activeBlueprintStatus.comparison.exportStatus.baseline === "approved"
+                      ? "ready"
+                      : "blocked"}
+                  </span>
+                </div>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </details>
+
+      <div className="candidate-list-header">
+        <h3>All generated versions</h3>
+        <p>Open any version below to continue from it in the editor.</p>
+      </div>
 
       <ol className="candidate-list">
         {candidates.map((candidate, index) => {
@@ -195,13 +211,13 @@ export function CandidateListPanel({
                   className={`candidate-export-status candidate-export-status-${candidate.exportReadiness.status}`}
                   title={candidate.exportReadiness.summary}
                 >
-                  {candidate.exportReadiness.status === "approved" ? "Export ready" : "Blocked"}
+                  {candidate.exportReadiness.status === "approved" ? "Ready now" : "Blocked"}
                 </span>
               </div>
               {isBestOverall || isBestExportReady ? (
                 <div className="candidate-lead-badges">
-                  {isBestOverall ? <span>Best overall</span> : null}
-                  {isBestExportReady ? <span>Best export-ready</span> : null}
+                  {isBestOverall ? <span>Top score</span> : null}
+                  {isBestExportReady ? <span>Ready now</span> : null}
                 </div>
               ) : null}
               <div className="candidate-stats">
@@ -210,7 +226,7 @@ export function CandidateListPanel({
                 </span>
                 <span>Score {candidate.report.score}</span>
                 <span>{candidate.report.findings.length} findings</span>
-                <span>{densityAligned ? "Density aligned" : "Density stretched"}</span>
+                <span>{densityAligned ? "Fits this brief" : "Stretch for this brief"}</span>
               </div>
               <p className="candidate-description">{candidate.blueprint.description}</p>
               <p className="candidate-intent">{candidate.blueprint.hierarchyIntent}</p>
@@ -228,10 +244,10 @@ export function CandidateListPanel({
               ) : null}
               <button type="button" onClick={() => onLoadCandidate(candidate)}>
                 {isActive
-                  ? "Reload into editor"
+                  ? "Use current version"
                   : candidate.exportReadiness.canExport
-                    ? "Load approved candidate"
-                    : "Load to repair"}
+                    ? "Open approved version"
+                    : "Open to fix"}
               </button>
             </li>
           );

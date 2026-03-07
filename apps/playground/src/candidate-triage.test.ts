@@ -130,7 +130,7 @@ describe("summarizeCandidateLeads", () => {
     expect(summary?.bestExportReady.blueprint.id).toBe("best-ready");
     expect(summary?.scoreGap).toBe(14);
     expect(summary?.findingGap).toBe(0);
-    expect(summary?.summary).toContain("best-ready is the current export-ready reference");
+    expect(summary?.summary).toContain("best-ready is the best approved version right now");
   });
 
   it("returns null when the active candidate is already export-ready", () => {
@@ -242,10 +242,10 @@ describe("summarizeCandidateRecommendation", () => {
     );
 
     expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
-    expect(recommendation?.label).toBe("Recommended export-ready candidate");
+    expect(recommendation?.label).toBe("Recommended approved version");
     expect(recommendation?.status).toBe("blocked");
-    expect(recommendation?.summary).toContain("active candidate remains blocked");
-    expect(recommendation?.summary).toContain("top-blocked still leads overall");
+    expect(recommendation?.summary).toContain("current version remains blocked");
+    expect(recommendation?.summary).toContain("top-blocked still has the top score");
   });
 
   it("keeps recommending an export-ready fallback when the active candidate leads on score but is blocked", () => {
@@ -259,8 +259,8 @@ describe("summarizeCandidateRecommendation", () => {
     );
 
     expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
-    expect(recommendation?.label).toBe("Export-ready fallback");
-    expect(recommendation?.summary).toContain("approved baseline now");
+    expect(recommendation?.label).toBe("Fastest approved path");
+    expect(recommendation?.summary).toContain("clean baseline now");
   });
 
   it("recommends a stronger approved candidate when the active candidate can export but trails", () => {
@@ -274,9 +274,9 @@ describe("summarizeCandidateRecommendation", () => {
     );
 
     expect(recommendation?.candidate.blueprint.id).toBe("best-ready");
-    expect(recommendation?.label).toBe("Stronger export-ready option");
+    expect(recommendation?.label).toBe("Stronger approved version");
     expect(recommendation?.status).toBe("approved");
-    expect(recommendation?.summary).toContain("best approved option");
+    expect(recommendation?.summary).toContain("strongest approved version");
   });
 
   it("returns null when the active candidate already matches the best export-ready option", () => {
@@ -310,14 +310,14 @@ describe("summarizeActiveBlueprintStatus", () => {
       [baselineCandidate]
     );
 
-    expect(summary?.label).toBe("Matching approved blueprint");
+    expect(summary?.label).toBe("Current version still matches its blueprint");
     expect(summary?.status).toBe("approved");
     expect(summary?.canRestoreBaseline).toBe(false);
     expect(summary?.comparison.scores.current).toBe(92);
     expect(summary?.comparison.scores.baseline).toBe(92);
     expect(summary?.comparison.scoreDelta).toBe(0);
     expect(summary?.comparison.exportStatus.current).toBe("approved");
-    expect(summary?.summary).toContain("matches that approved baseline exactly");
+    expect(summary?.summary).toContain("still matches it exactly");
   });
 
   it("reports when the active editor drifts behind an approved blueprint baseline", () => {
@@ -341,7 +341,7 @@ describe("summarizeActiveBlueprintStatus", () => {
       [baselineCandidate]
     );
 
-    expect(summary?.label).toBe("Drifted from blueprint");
+    expect(summary?.label).toBe("Current version changed from its blueprint");
     expect(summary?.status).toBe("blocked");
     expect(summary?.canRestoreBaseline).toBe(true);
     expect(summary?.comparison.scores.current).toBe(84);
@@ -378,7 +378,7 @@ describe("summarizeActiveBlueprintStatus", () => {
       [blockedBaseline]
     );
 
-    expect(summary?.label).toBe("Customized from blueprint");
+    expect(summary?.label).toBe("Current version changed from its blueprint");
     expect(summary?.status).toBe("approved");
     expect(summary?.canRestoreBaseline).toBe(true);
     expect(summary?.comparison.scores.current).toBe(90);
@@ -406,9 +406,9 @@ describe("summarizeWorkbenchStanding", () => {
       ]
     );
 
-    expect(standing.label).toBe("Strongest overall");
+    expect(standing.label).toBe("Export the current version");
     expect(standing.status).toBe("approved");
-    expect(standing.summary).toContain("matches or beats top-blocked");
+    expect(standing.summary).toContain("at least as strong as top-blocked");
   });
 
   it("marks the active candidate as highest score when it still cannot export", () => {
@@ -421,10 +421,10 @@ describe("summarizeWorkbenchStanding", () => {
       ]
     );
 
-    expect(standing.label).toBe("Highest score, still blocked");
+    expect(standing.label).toBe("Fix blockers or switch to an approved version");
     expect(standing.status).toBe("blocked");
-    expect(standing.summary).toContain("export remains blocked");
-    expect(standing.summary).toContain("best-ready remains the current export-ready reference");
+    expect(standing.summary).toContain("still cannot export");
+    expect(standing.summary).toContain("best approved fallback");
   });
 
   it("marks the active candidate as strongest export-ready when a blocked candidate still leads overall", () => {
@@ -437,10 +437,9 @@ describe("summarizeWorkbenchStanding", () => {
       ]
     );
 
-    expect(standing.label).toBe("Strongest export-ready");
+    expect(standing.label).toBe("Export the current version");
     expect(standing.status).toBe("approved");
-    expect(standing.summary).toContain("matches or beats best-ready");
-    expect(standing.summary).toContain("top-blocked still leads overall");
+    expect(standing.summary).toContain("at least as strong as best-ready");
   });
 
   it("reports when no generated candidate has cleared export yet", () => {
@@ -453,8 +452,8 @@ describe("summarizeWorkbenchStanding", () => {
       ]
     );
 
-    expect(standing.label).toBe("No export-ready reference yet");
+    expect(standing.label).toBe("Keep repairing the current version");
     expect(standing.status).toBe("blocked");
-    expect(standing.summary).toContain("no generated candidate has cleared export yet");
+    expect(standing.summary).toContain("none of the generated versions are ready to export yet");
   });
 });

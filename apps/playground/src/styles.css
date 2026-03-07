@@ -632,6 +632,26 @@ body {
   font-weight: 700;
 }
 
+.candidate-supporting-details {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #f8fbff;
+  padding: 0.8rem 0.9rem;
+}
+
+.candidate-supporting-details summary {
+  cursor: pointer;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.candidate-supporting-content {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
 .candidate-recommendation {
   display: grid;
   gap: 0.65rem;
@@ -904,6 +924,23 @@ body {
 .workbench-standing-neutral .workbench-standing-header span {
   background: #dbeafe;
   color: #1d4ed8;
+}
+
+.candidate-list-header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.candidate-list-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.candidate-list-header p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.84rem;
 }
 
 .candidate-list {

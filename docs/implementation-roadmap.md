@@ -226,6 +226,11 @@ Do not add a second screen type until:
    - Added 4 authored `dashboard` blueprints with summary-band-led compositions for executive, operational, and focused monitoring modes using the existing section primitives.
    - Added dashboard-specific critic rules for buried summary bands, missing operational surfaces, presentation drift, fragmented surface stacks, density mismatch, and competing banner CTAs, along with deterministic fixes for summary reorder, drift removal, CTA simplification, and surface trimming.
    - Added tests covering dashboard blueprints, dashboard critic behavior, dashboard candidate generation, and `brief.json` round-tripping for the new brief shape.
+26. Reframe candidate triage around a human-readable next step. Completed on 2026-03-06.
+   - Simplified the top of the generated-candidate panel in `apps/playground` so it now leads with a plain-language `Next step` summary instead of internal ranking terms.
+   - Demoted engine-facing explanation such as top-score versus export-ready reference and blueprint-baseline comparison into a collapsible details block, keeping the primary workflow focused on choosing, fixing, or exporting a version.
+   - Rewrote candidate and recommendation copy to use task-oriented language like approved version, ready now, open to fix, and use this version.
+   - Added tests covering the new recommendation/standing wording and the rendered candidate panel copy.
 
 ## Working Method
 
