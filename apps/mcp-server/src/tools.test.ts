@@ -1,4 +1,8 @@
-import { CURRENT_SCHEMA_VERSION, canonicalProjectFixture } from "@bux/core-model";
+import {
+  CURRENT_SCHEMA_VERSION,
+  canonicalDashboardScreenBriefFixture,
+  canonicalProjectFixture
+} from "@bux/core-model";
 import { describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -277,6 +281,60 @@ describe("mcp tools", () => {
     expect((result.layoutSpec as Record<string, unknown>).generatedAt).toBe(
       "2026-03-02T12:30:00.000Z"
     );
+  });
+
+  it("returns ranked dashboard directions with reference-fit summaries", async () => {
+    const response = await executeToolRequest({
+      id: 17,
+      tool: "direction.generate",
+      input: {
+        brief: {
+          ...canonicalDashboardScreenBriefFixture,
+          artDirection: "commandCenter"
+        },
+        maxCandidates: 2
+      }
+    });
+    const result = expectOk(response);
+
+    expect(isRecord(result.brief)).toBe(true);
+    expect((result.brief as Record<string, unknown>).screenType).toBe("dashboard");
+    expect(isRecord(result.referencePack)).toBe(true);
+    expect((result.referencePack as Record<string, unknown>).profileLabel).toBe(
+      "Command Center"
+    );
+    expect(Array.isArray(result.candidates)).toBe(true);
+    expect((result.candidates as unknown[])).toHaveLength(2);
+
+    const firstCandidate = (result.candidates as Record<string, unknown>[])[0]!;
+    expect(firstCandidate.rank).toBe(1);
+    expect(isRecord(firstCandidate.blueprint)).toBe(true);
+    expect(
+      "createPage" in (firstCandidate.blueprint as Record<string, unknown>)
+    ).toBe(false);
+    expect(isRecord(firstCandidate.exportReadiness)).toBe(true);
+    expect(isRecord(firstCandidate.visualCompare)).toBe(true);
+    expect((firstCandidate.visualCompare as Record<string, unknown>).status).toMatch(
+      /^(strong|mixed|drifting)$/
+    );
+  });
+
+  it("rejects non-dashboard briefs for direction.generate", async () => {
+    const response = await executeToolRequest({
+      id: 18,
+      tool: "direction.generate",
+      input: {
+        brief: {
+          screenType: "settings",
+          title: "Workspace settings",
+          density: "comfortable"
+        }
+      }
+    });
+    const error = expectError(response);
+
+    expect(error.code).toBe("INVALID_INPUT");
+    expect(error.message).toContain("screenType must be dashboard");
   });
 
   it("returns INVALID_INPUT for unsupported stress value", async () => {

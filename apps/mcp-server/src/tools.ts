@@ -1,5 +1,6 @@
 import { createNextAdapter } from "@bux/adapters-next";
 import { createWebstirAdapter } from "@bux/adapters-webstir";
+import type { ScreenBlueprint } from "@bux/blueprint-library";
 import {
   applyAction,
   type AddSectionAction,
@@ -8,6 +9,8 @@ import {
   type UpdateSectionAction
 } from "@bux/core-engine";
 import {
+  type DashboardScreenBrief,
+  CURRENT_SCHEMA_VERSION,
   canonicalProjectFixture,
   ProjectMigrationError,
   type DensityMode,
@@ -18,6 +21,11 @@ import {
   type StressCopyMode,
   type StressStateMode
 } from "@bux/core-model";
+import {
+  generateCandidates,
+  getDashboardReferencePack,
+  summarizeDashboardVisualCompare
+} from "@bux/direction-engine";
 import {
   collectValidationIssues,
   createExportBundleFiles,
@@ -293,6 +301,96 @@ function assertProject(value: unknown): PlaygroundProject {
   }
 
   return value as unknown as PlaygroundProject;
+}
+
+function optionalProject(value: unknown, path: string): PlaygroundProject | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    throw new McpToolError("INVALID_INPUT", `${path} must be an object.`);
+  }
+
+  return value as unknown as PlaygroundProject;
+}
+
+function assertDashboardDensity(
+  value: unknown,
+  path: string
+): DashboardScreenBrief["density"] {
+  if (value !== "executive" && value !== "operational" && value !== "focused") {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be executive, operational, or focused for dashboard.`
+    );
+  }
+
+  return value;
+}
+
+function assertDashboardArtDirection(
+  value: unknown,
+  path: string
+): DashboardScreenBrief["artDirection"] {
+  if (
+    value !== "quietSignal" &&
+    value !== "commandCenter" &&
+    value !== "editorialPulse"
+  ) {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      `${path} must be quietSignal, commandCenter, or editorialPulse for dashboard.`
+    );
+  }
+
+  return value;
+}
+
+function assertDashboardBrief(value: unknown): DashboardScreenBrief {
+  const brief = assertRecord(value, "input.brief");
+  const screenType = brief.screenType;
+
+  if (screenType !== "dashboard") {
+    throw new McpToolError(
+      "INVALID_INPUT",
+      "input.brief.screenType must be dashboard for direction.generate."
+    );
+  }
+
+  return {
+    schemaVersion:
+      brief.schemaVersion === undefined
+        ? CURRENT_SCHEMA_VERSION
+        : assertString(brief.schemaVersion, "input.brief.schemaVersion"),
+    screenType,
+    title: assertString(brief.title, "input.brief.title"),
+    density: assertDashboardDensity(brief.density, "input.brief.density"),
+    artDirection: assertDashboardArtDirection(
+      brief.artDirection,
+      "input.brief.artDirection"
+    )
+  };
+}
+
+function serializeBlueprint(blueprint: ScreenBlueprint): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    id: blueprint.id,
+    screenType: blueprint.screenType,
+    name: blueprint.name,
+    description: blueprint.description,
+    hierarchyIntent: blueprint.hierarchyIntent,
+    densityEnvelope: blueprint.densityEnvelope,
+    ctaStrategy: blueprint.ctaStrategy,
+    allowedVariants: blueprint.allowedVariants,
+    antiPatternNotes: blueprint.antiPatternNotes
+  };
+
+  if (blueprint.screenType === "dashboard") {
+    metadata.artDirectionProfiles = blueprint.artDirectionProfiles;
+  }
+
+  return metadata;
 }
 
 async function ensureCanCreateProject(rootPath: string, overwrite: boolean): Promise<void> {
@@ -650,6 +748,48 @@ async function handleAdapterEmit(input: unknown): Promise<unknown> {
   };
 }
 
+async function handleDirectionGenerate(input: unknown): Promise<unknown> {
+  const payload = assertRecord(input, "input");
+  const brief = assertDashboardBrief(payload.brief);
+  const project = optionalProject(payload.project, "input.project");
+  const maxCandidates = optionalInteger(payload.maxCandidates, "input.maxCandidates") ?? 4;
+
+  if (maxCandidates < 1) {
+    throw new McpToolError("INVALID_INPUT", "input.maxCandidates must be at least 1.");
+  }
+
+  try {
+    const baseProject =
+      project === undefined
+        ? structuredClone(canonicalProjectFixture)
+        : structuredClone(project);
+    const candidates = generateCandidates(baseProject, brief, maxCandidates);
+
+    return {
+      brief,
+      referencePack: getDashboardReferencePack(brief.artDirection),
+      candidates: candidates.map((candidate, index) => ({
+        rank: index + 1,
+        blueprint: serializeBlueprint(candidate.blueprint),
+        project: candidate.project,
+        report: candidate.report,
+        exportReadiness: candidate.exportReadiness,
+        visualCompare: summarizeDashboardVisualCompare(candidate)
+      }))
+    };
+  } catch (error: unknown) {
+    if (error instanceof McpToolError) {
+      throw error;
+    }
+
+    if (error instanceof Error) {
+      throw new McpToolError("INVALID_INPUT", error.message);
+    }
+
+    throw error;
+  }
+}
+
 async function invokeTool(tool: string, input: unknown): Promise<unknown> {
   switch (tool) {
     case "project.open":
@@ -676,6 +816,8 @@ async function invokeTool(tool: string, input: unknown): Promise<unknown> {
       return handleExportBundle(input);
     case "adapter.emit":
       return handleAdapterEmit(input);
+    case "direction.generate":
+      return handleDirectionGenerate(input);
     default:
       throw new McpToolError("INVALID_INPUT", `Unsupported tool "${tool}".`);
   }

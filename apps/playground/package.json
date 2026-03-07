@@ -15,6 +15,7 @@
     "@bux/critic-rules": "workspace:*",
     "@bux/core-engine": "workspace:*",
     "@bux/core-model": "workspace:*",
+    "@bux/direction-engine": "workspace:*",
     "@bux/preview-runtime": "workspace:*",
     "@bux/section-kit": "workspace:*",
     "react": "^19.1.1",

@@ -1,8 +1,5 @@
-import {
-  createPageFromBlueprint,
-  getDefaultBlueprintId
-} from "@bux/blueprint-library";
-import { applyAction } from "@bux/core-engine";
+import { getDefaultBlueprintId } from "@bux/blueprint-library";
+import { applyBlueprintToProject } from "@bux/direction-engine";
 import {
   canonicalDashboardScreenBriefFixture,
   canonicalMarketingLandingScreenBriefFixture,
@@ -17,7 +14,8 @@ import {
   type ScreenType,
   type SettingsScreenBrief
 } from "@bux/core-model";
-import { applyDashboardArtDirection } from "./dashboard-art-direction";
+
+export { applyBlueprintToProject } from "@bux/direction-engine";
 
 export function createInitialBrief(screenType: "settings"): SettingsScreenBrief;
 export function createInitialBrief(
@@ -39,37 +37,6 @@ export function createInitialBrief(screenType: ScreenType): ScreenBrief {
     case "dashboard":
       return structuredClone(canonicalDashboardScreenBriefFixture);
   }
-}
-
-export function applyBlueprintToProject<TBrief extends ScreenBrief>(
-  project: PlaygroundProject,
-  brief: TBrief,
-  blueprintId: string
-): PlaygroundProject {
-  let nextProject = structuredClone(project);
-  const page = createPageFromBlueprint(blueprintId, brief);
-
-  for (const sectionId of nextProject.page.sections.map((section) => section.id)) {
-    nextProject = applyAction(nextProject, {
-      type: "removeSection",
-      sectionId
-    });
-  }
-
-  for (const section of page.sections) {
-    nextProject = applyAction(nextProject, {
-      type: "addSection",
-      section
-    });
-  }
-
-  nextProject.page.title = page.title;
-
-  if (brief.screenType === "dashboard") {
-    nextProject = applyDashboardArtDirection(nextProject, brief.artDirection);
-  }
-
-  return nextProject;
 }
 
 export function createStarterProject(screenType: ScreenType): PlaygroundProject;
