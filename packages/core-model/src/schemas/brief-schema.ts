@@ -1,4 +1,5 @@
 import {
+  dashboardArtDirectionProfiles,
   dashboardScreenDensities,
   marketingLandingScreenDensities,
   onboardingScreenDensities,
@@ -45,12 +46,19 @@ export const briefSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["schemaVersion", "screenType", "title", "density"],
+      required: [
+        "schemaVersion",
+        "screenType",
+        "title",
+        "density",
+        "artDirection"
+      ],
       properties: {
         schemaVersion: { type: "string", minLength: 1 },
         screenType: { const: "dashboard" },
         title: { type: "string", minLength: 1 },
-        density: { type: "string", enum: [...dashboardScreenDensities] }
+        density: { type: "string", enum: [...dashboardScreenDensities] },
+        artDirection: { type: "string", enum: [...dashboardArtDirectionProfiles] }
       }
     }
   ]

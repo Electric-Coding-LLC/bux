@@ -1,5 +1,7 @@
+import type { AdapterTarget } from "@bux/adapter-contract";
 import {
   CURRENT_SCHEMA_VERSION,
+  canonicalDashboardScreenBriefFixture,
   canonicalProjectFixture,
   canonicalSettingsScreenBriefFixture,
   type DashboardScreenBrief,
@@ -15,6 +17,11 @@ import {
   createExportBundleFiles,
   ExportValidationError
 } from "@bux/exporter/browser";
+import {
+  createAdapterLayoutSpecFile,
+  defaultAdapterTarget,
+  isAdapterTarget
+} from "./adapter-targets";
 
 const requiredProjectFiles = [
   "tokens.json",
@@ -27,12 +34,14 @@ type ProjectFileName = (typeof requiredProjectFiles)[number];
 
 export interface LoadedProjectState {
   activeBlueprintId: string | null;
+  adapterTarget: AdapterTarget;
   brief: ScreenBrief | null;
   project: PlaygroundProject;
 }
 
 interface WorkbenchDocument {
   activeBlueprintId: string | null;
+  adapterTarget: AdapterTarget;
   brief: ScreenBrief;
 }
 
@@ -71,6 +80,19 @@ async function writeTextFile(
   await writable.close();
 }
 
+async function writeFilesToDirectoryHandle(
+  directoryHandle: FileSystemDirectoryHandle,
+  files: Record<string, string>
+): Promise<string[]> {
+  await Promise.all(
+    Object.entries(files).map(([fileName, contents]) =>
+      writeTextFile(directoryHandle, fileName, contents)
+    )
+  );
+
+  return Object.keys(files).sort();
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -97,6 +119,16 @@ function isDashboardDensity(
   return value === "executive" || value === "operational" || value === "focused";
 }
 
+function isDashboardArtDirection(
+  value: unknown
+): value is DashboardScreenBrief["artDirection"] {
+  return (
+    value === "quietSignal" ||
+    value === "commandCenter" ||
+    value === "editorialPulse"
+  );
+}
+
 function parseActiveBlueprintId(value: unknown): string | null {
   if (value === undefined || value === null) {
     return null;
@@ -104,6 +136,34 @@ function parseActiveBlueprintId(value: unknown): string | null {
 
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error("brief.json activeBlueprintId must be a non-empty string when provided.");
+  }
+
+  return value;
+}
+
+function parseAdapterTarget(value: unknown): AdapterTarget {
+  if (value === undefined || value === null) {
+    return defaultAdapterTarget;
+  }
+
+  if (!isAdapterTarget(value)) {
+    throw new Error('brief.json adapterTarget must be "nextjs" or "webstir" when provided.');
+  }
+
+  return value;
+}
+
+function parseDashboardArtDirection(
+  value: unknown
+): DashboardScreenBrief["artDirection"] {
+  if (value === undefined || value === null) {
+    return canonicalDashboardScreenBriefFixture.artDirection;
+  }
+
+  if (!isDashboardArtDirection(value)) {
+    throw new Error(
+      'brief.json artDirection must be "quietSignal", "commandCenter", or "editorialPulse" for dashboard.'
+    );
   }
 
   return value;
@@ -132,6 +192,7 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
   }
 
   const activeBlueprintId = parseActiveBlueprintId(value.activeBlueprintId);
+  const adapterTarget = parseAdapterTarget(value.adapterTarget);
 
   if (screenType === "settings") {
     if (!isSettingsDensity(value.density)) {
@@ -140,6 +201,7 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
 
     return {
       activeBlueprintId,
+      adapterTarget,
       brief: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         screenType,
@@ -158,6 +220,7 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
 
     return {
       activeBlueprintId,
+      adapterTarget,
       brief: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         screenType,
@@ -176,6 +239,7 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
 
     return {
       activeBlueprintId,
+      adapterTarget,
       brief: {
         schemaVersion: CURRENT_SCHEMA_VERSION,
         screenType,
@@ -193,21 +257,28 @@ export function parseWorkbenchDocument(value: unknown): WorkbenchDocument {
 
   return {
     activeBlueprintId,
+    adapterTarget,
     brief: {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       screenType,
       title: value.title,
-      density: value.density as DashboardScreenBrief["density"]
+      density: value.density as DashboardScreenBrief["density"],
+      artDirection: parseDashboardArtDirection(value.artDirection)
     }
   };
 }
 
 export function serializeWorkbenchDocument(
   brief: ScreenBrief,
-  activeBlueprintId: string | null
+  activeBlueprintId: string | null,
+  adapterTarget: AdapterTarget
 ): string {
   return canonicalJSONStringify({
     activeBlueprintId,
+    adapterTarget,
+    ...(brief.screenType === "dashboard"
+      ? { artDirection: brief.artDirection }
+      : {}),
     density: brief.density,
     schemaVersion: brief.schemaVersion,
     screenType: brief.screenType,
@@ -226,7 +297,8 @@ export function createNewProject(): PlaygroundProject {
 export function serializeProjectFingerprint(
   project: PlaygroundProject,
   brief: ScreenBrief = canonicalSettingsScreenBriefFixture,
-  activeBlueprintId: string | null = null
+  activeBlueprintId: string | null = null,
+  adapterTarget: AdapterTarget = defaultAdapterTarget
 ): string {
   return [
     canonicalJSONStringify(project.tokens),
@@ -234,8 +306,33 @@ export function serializeProjectFingerprint(
     canonicalJSONStringify(project.constraints),
     canonicalJSONStringify(project.summary),
     canonicalJSONStringify(brief),
-    canonicalJSONStringify(activeBlueprintId)
+    canonicalJSONStringify(activeBlueprintId),
+    canonicalJSONStringify(adapterTarget)
   ].join("\n");
+}
+
+export function createWorkbenchSaveFiles(
+  project: PlaygroundProject,
+  brief: ScreenBrief,
+  activeBlueprintId: string | null,
+  adapterTarget: AdapterTarget
+): Record<string, string> {
+  return {
+    ...createExportBundleFiles(project),
+    "brief.json": serializeWorkbenchDocument(brief, activeBlueprintId, adapterTarget)
+  };
+}
+
+export function createProjectExportFiles(
+  project: PlaygroundProject,
+  adapterTarget: AdapterTarget
+): Record<string, string> {
+  const layoutSpec = createAdapterLayoutSpecFile(project, adapterTarget);
+
+  return {
+    ...createExportBundleFiles(project),
+    [layoutSpec.fileName]: layoutSpec.contents
+  };
 }
 
 export function validationErrorMessage(error: unknown): string {
@@ -278,6 +375,7 @@ export async function loadProjectFromDirectoryHandle(
   );
   let brief: ScreenBrief | null = null;
   let activeBlueprintId: string | null = null;
+  let adapterTarget = defaultAdapterTarget;
 
   try {
     const workbenchDocument = parseWorkbenchDocument(
@@ -285,6 +383,7 @@ export async function loadProjectFromDirectoryHandle(
     );
     brief = workbenchDocument.brief;
     activeBlueprintId = workbenchDocument.activeBlueprintId;
+    adapterTarget = workbenchDocument.adapterTarget;
   } catch (error) {
     if (!(error instanceof DOMException && error.name === "NotFoundError")) {
       throw error;
@@ -293,6 +392,7 @@ export async function loadProjectFromDirectoryHandle(
 
   return {
     activeBlueprintId,
+    adapterTarget,
     brief,
     project: migrateProjectFilesToCurrentSchema({
       tokens,
@@ -307,18 +407,22 @@ export async function saveProjectToDirectoryHandle(
   directoryHandle: FileSystemDirectoryHandle,
   project: PlaygroundProject,
   brief: ScreenBrief,
-  activeBlueprintId: string | null
+  activeBlueprintId: string | null,
+  adapterTarget: AdapterTarget
 ): Promise<string[]> {
-  const files = createExportBundleFiles(project);
-
-  await Promise.all(
-    [
-      ...Object.entries(files),
-      ["brief.json", serializeWorkbenchDocument(brief, activeBlueprintId)] as const
-    ].map(([fileName, contents]) =>
-      writeTextFile(directoryHandle, fileName, contents)
-    )
+  return writeFilesToDirectoryHandle(
+    directoryHandle,
+    createWorkbenchSaveFiles(project, brief, activeBlueprintId, adapterTarget)
   );
+}
 
-  return [...Object.keys(files), "brief.json"].sort();
+export async function exportProjectToDirectoryHandle(
+  directoryHandle: FileSystemDirectoryHandle,
+  project: PlaygroundProject,
+  adapterTarget: AdapterTarget
+): Promise<string[]> {
+  return writeFilesToDirectoryHandle(
+    directoryHandle,
+    createProjectExportFiles(project, adapterTarget)
+  );
 }

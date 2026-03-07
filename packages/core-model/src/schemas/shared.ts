@@ -15,6 +15,11 @@ export const dashboardScreenDensities = [
   "operational",
   "focused"
 ] as const;
+export const dashboardArtDirectionProfiles = [
+  "quietSignal",
+  "commandCenter",
+  "editorialPulse"
+] as const;
 export const criticFindingSeverities = ["low", "medium", "high"] as const;
 export const criticVerdicts = ["pass", "warn", "fail"] as const;
 export const sectionTypes = [

@@ -82,6 +82,24 @@ function page(title: string, sections: SectionNode[]): PageDocument {
   };
 }
 
+function isCommandCenter(
+  brief: DashboardScreenBrief
+): boolean {
+  return brief.artDirection === "commandCenter";
+}
+
+function isEditorialPulse(
+  brief: DashboardScreenBrief
+): boolean {
+  return brief.artDirection === "editorialPulse";
+}
+
+function isQuietSignal(
+  brief: DashboardScreenBrief
+): boolean {
+  return brief.artDirection === "quietSignal";
+}
+
 const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
   {
     id: "executive-briefing",
@@ -94,7 +112,15 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     densityEnvelope: ["executive", "focused"],
     ctaStrategy:
       "Keep actions implicit in the operational surfaces instead of adding promo-style buttons above the data.",
-    allowedVariants: ["cards", "simple", "comfortable"],
+    allowedVariants: [
+      "cards",
+      "minimal",
+      "simple",
+      "detailed",
+      "comfortable",
+      "compact"
+    ],
+    artDirectionProfiles: ["quietSignal", "editorialPulse"],
     antiPatternNotes: [
       "Do not stack multiple equal-weight tables above the summary band.",
       "Do not drift into setup or marketing surfaces."
@@ -102,7 +128,9 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     createPage: (brief) =>
       page(brief.title, [
         featureGridSection("sec-feature-grid-001", {
-          heading: "This week at a glance",
+          heading: isEditorialPulse(brief)
+            ? "What moved the program this week"
+            : "This week at a glance",
           items: [
             {
               title: "SLA risk",
@@ -121,16 +149,18 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
               body: "2 workspaces are waiting on policy fixes before they can ship."
             }
           ],
-          variant: "cards"
+          variant: isQuietSignal(brief) ? "minimal" : "cards"
         }),
         listSection("sec-list-001", {
-          heading: "Where leadership should look next",
+          heading: isEditorialPulse(brief)
+            ? "Signals leadership should read next"
+            : "Where leadership should look next",
           items: [
             "Security policy drift is climbing in the enterprise workspaces.",
             "Two onboarding candidates cleared the critic but still need export fixes.",
             "Marketing launch briefs are trending toward weaker proof density."
           ],
-          variant: "simple"
+          variant: isEditorialPulse(brief) ? "detailed" : "simple"
         }),
         tableSection("sec-table-001", {
           columns: 4,
@@ -141,7 +171,7 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
             ["Admin reset", "Luis", "Blocked", "Repair settings grouping"],
             ["Activation refresh", "Mina", "Watching", "Validate export bundle"]
           ],
-          variant: "comfortable"
+          variant: isCommandCenter(brief) ? "compact" : "comfortable"
         })
       ])
   },
@@ -156,7 +186,15 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     densityEnvelope: ["operational"],
     ctaStrategy:
       "Keep the dashboard action model inside the queue rows and escalation list rather than introducing extra banners.",
-    allowedVariants: ["minimal", "comfortable", "detailed"],
+    allowedVariants: [
+      "minimal",
+      "cards",
+      "comfortable",
+      "compact",
+      "simple",
+      "detailed"
+    ],
+    artDirectionProfiles: ["commandCenter", "quietSignal"],
     antiPatternNotes: [
       "Do not replace the main queue with scattered card fragments.",
       "Do not introduce a settings block into the dashboard spine."
@@ -164,7 +202,9 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     createPage: (brief) =>
       page(brief.title, [
         featureGridSection("sec-feature-grid-001", {
-          heading: "Operations pulse",
+          heading: isCommandCenter(brief)
+            ? "Control room pulse"
+            : "Operations pulse",
           items: [
             {
               title: "Open blockers",
@@ -179,7 +219,7 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
               body: "One-click repairs clear the current blocker gap on 61% of attempts."
             }
           ],
-          variant: "minimal"
+          variant: isCommandCenter(brief) ? "cards" : "minimal"
         }),
         tableSection("sec-table-001", {
           columns: 5,
@@ -190,16 +230,21 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
             ["Onboarding gap", "Ari", "27m", "High", "Move intro to top"],
             ["Landing proof", "Dev", "11m", "Medium", "Restore proof surface"]
           ],
-          variant: brief.density === "focused" ? "compact" : "comfortable"
+          variant:
+            brief.density === "focused" || isCommandCenter(brief)
+              ? "compact"
+              : "comfortable"
         }),
         listSection("sec-list-001", {
-          heading: "Escalations to clear today",
+          heading: isQuietSignal(brief)
+            ? "Escalations to clear today"
+            : "Escalations that need action today",
           items: [
             "Approve the security-copy rewrite before the enterprise export closes.",
             "Confirm the blocked onboarding baseline is still the right reference candidate.",
             "Watch the marketing launch queue for repeated hero CTA competition."
           ],
-          variant: "detailed"
+          variant: isQuietSignal(brief) ? "simple" : "detailed"
         })
       ])
   },
@@ -214,7 +259,8 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     densityEnvelope: ["focused", "operational"],
     ctaStrategy:
       "Use the queue rows as the action surface and avoid additional call-to-action treatment elsewhere.",
-    allowedVariants: ["cards", "compact"],
+    allowedVariants: ["cards", "minimal", "compact", "comfortable"],
+    artDirectionProfiles: ["commandCenter", "quietSignal"],
     antiPatternNotes: [
       "Do not add extra explainer sections between the summary and the queue.",
       "Do not duplicate the queue in both list and table form."
@@ -222,7 +268,9 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     createPage: (brief) =>
       page(brief.title, [
         featureGridSection("sec-feature-grid-001", {
-          heading: "Immediate attention",
+          heading: isCommandCenter(brief)
+            ? "Immediate action band"
+            : "Immediate attention",
           items: [
             {
               title: "Blocked exports",
@@ -237,7 +285,10 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
               body: "One previously approved baseline was edited into blocked territory."
             }
           ],
-          variant: brief.density === "focused" ? "cards" : "minimal"
+          variant:
+            brief.density === "focused" || isEditorialPulse(brief)
+              ? "cards"
+              : "minimal"
         }),
         tableSection("sec-table-001", {
           columns: 4,
@@ -248,7 +299,7 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
             ["Welcome flow", "Missing intro", "Luis", "Move hero to top"],
             ["Launch page", "Weak proof", "Tara", "Restore proof section"]
           ],
-          variant: "compact"
+          variant: isQuietSignal(brief) ? "comfortable" : "compact"
         })
       ])
   },
@@ -263,7 +314,8 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     densityEnvelope: ["focused", "executive"],
     ctaStrategy:
       "Keep the follow-up list terse and avoid adding a second heavy operational surface.",
-    allowedVariants: ["minimal", "simple"],
+    allowedVariants: ["minimal", "cards", "simple", "detailed"],
+    artDirectionProfiles: ["quietSignal", "editorialPulse"],
     antiPatternNotes: [
       "Do not turn the follow-up list into a full backlog table.",
       "Do not bury the summary band under an announcement block."
@@ -271,7 +323,9 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
     createPage: (brief) =>
       page(brief.title, [
         featureGridSection("sec-feature-grid-001", {
-          heading: "Current pulse",
+          heading: isEditorialPulse(brief)
+            ? "Current program pulse"
+            : "Current pulse",
           items: [
             {
               title: "Approved now",
@@ -286,16 +340,21 @@ const dashboardBlueprintDefinitions: DashboardBlueprint[] = [
               body: "2 workspaces need human judgment on critic tradeoffs."
             }
           ],
-          variant: "minimal"
+          variant: isEditorialPulse(brief) ? "cards" : "minimal"
         }),
         listSection("sec-list-001", {
-          heading: "Next checks",
+          heading: isEditorialPulse(brief)
+            ? "What to review next"
+            : "Next checks",
           items: [
             "Confirm the strongest export-ready onboarding baseline is still the right recommendation.",
             "Review the queued enterprise settings repair before the policy window closes.",
             "Re-run the snapshot export check after the next approved landing candidate loads."
           ],
-          variant: brief.density === "focused" ? "simple" : "detailed"
+          variant:
+            brief.density === "focused" && !isEditorialPulse(brief)
+              ? "simple"
+              : "detailed"
         })
       ])
   }

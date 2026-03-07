@@ -8,6 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bux/adapters-next": "workspace:*",
+    "@bux/adapter-contract": "workspace:*",
+    "@bux/adapters-webstir": "workspace:*",
     "@bux/blueprint-library": "workspace:*",
     "@bux/critic-rules": "workspace:*",
     "@bux/core-engine": "workspace:*",

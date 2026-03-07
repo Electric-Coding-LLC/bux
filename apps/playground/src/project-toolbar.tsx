@@ -1,3 +1,8 @@
+import type { AdapterTarget } from "@bux/adapter-contract";
+import {
+  adapterTargetOptions,
+  getAdapterTargetLabel
+} from "./adapter-targets";
 import type { ExportReadiness } from "./export-readiness";
 
 export interface ProjectNotice {
@@ -6,6 +11,7 @@ export interface ProjectNotice {
 }
 
 interface ProjectToolbarProps {
+  adapterTarget: AdapterTarget;
   exportReadiness: ExportReadiness;
   projectName: string;
   isDirty: boolean;
@@ -13,6 +19,7 @@ interface ProjectToolbarProps {
   supportsDirectoryPicker: boolean;
   notice: ProjectNotice | null;
   onCreateNew: () => void;
+  onAdapterTargetChange: (target: AdapterTarget) => void;
   onOpen: () => void;
   onSave: () => void;
   onSaveAs: () => void;
@@ -20,6 +27,7 @@ interface ProjectToolbarProps {
 }
 
 export function ProjectToolbar({
+  adapterTarget,
   exportReadiness,
   projectName,
   isDirty,
@@ -27,12 +35,14 @@ export function ProjectToolbar({
   supportsDirectoryPicker,
   notice,
   onCreateNew,
+  onAdapterTargetChange,
   onOpen,
   onSave,
   onSaveAs,
   onExport
 }: ProjectToolbarProps) {
   const exportDisabled = isBusy || !supportsDirectoryPicker || !exportReadiness.canExport;
+  const adapterTargetLabel = getAdapterTargetLabel(adapterTarget);
 
   return (
     <section className="panel-block">
@@ -65,8 +75,31 @@ export function ProjectToolbar({
           disabled={exportDisabled}
           title={!exportReadiness.canExport ? exportReadiness.summary : undefined}
         >
-          Export
+          Export {adapterTargetLabel}
         </button>
+      </div>
+
+      <div className="project-export-target">
+        <label className="control-row">
+          <span>Export target</span>
+          <select
+            value={adapterTarget}
+            onChange={(event) =>
+              onAdapterTargetChange(event.currentTarget.value as AdapterTarget)
+            }
+            disabled={isBusy}
+          >
+            {adapterTargetOptions.map((target) => (
+              <option key={target} value={target}>
+                {getAdapterTargetLabel(target)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="project-export-caption">
+          Save keeps the editable workbench bundle. Export writes the canonical project files plus
+          the current {adapterTargetLabel} layout spec.
+        </p>
       </div>
 
       <div className={`export-readiness export-readiness-${exportReadiness.status}`}>

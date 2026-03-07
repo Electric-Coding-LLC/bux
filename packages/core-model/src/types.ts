@@ -13,6 +13,10 @@ export type SettingsScreenDensity = DensityMode | "calm";
 export type OnboardingScreenDensity = "guided" | "focused" | "compact";
 export type MarketingLandingDensity = "editorial" | "focused" | "launch";
 export type DashboardScreenDensity = "executive" | "operational" | "focused";
+export type DashboardArtDirectionProfile =
+  | "quietSignal"
+  | "commandCenter"
+  | "editorialPulse";
 export type CriticFindingSeverity = "low" | "medium" | "high";
 export type CriticVerdict = "pass" | "warn" | "fail";
 export type SectionType =
@@ -146,6 +150,7 @@ export interface DashboardScreenBrief {
   screenType: "dashboard";
   title: string;
   density: DashboardScreenDensity;
+  artDirection: DashboardArtDirectionProfile;
 }
 
 export type ScreenBrief =

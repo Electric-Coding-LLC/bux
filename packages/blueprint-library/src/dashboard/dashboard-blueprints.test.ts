@@ -21,13 +21,15 @@ function makeProject(page: PlaygroundProject["page"]): PlaygroundProject {
 }
 
 function makeBrief(
-  density: DashboardScreenBrief["density"]
+  density: DashboardScreenBrief["density"],
+  artDirection: DashboardScreenBrief["artDirection"] = "quietSignal"
 ): DashboardScreenBrief {
   return {
     schemaVersion: "1.0.0",
     screenType: "dashboard",
     title: "Team operations pulse",
-    density
+    density,
+    artDirection
   };
 }
 
@@ -65,5 +67,21 @@ describe("dashboard blueprints", () => {
 
       expect(report.verdict).not.toBe("fail");
     }
+  });
+
+  it("applies art-direction-aware variants for the same blueprint", () => {
+    const quietPage = createDashboardPageFromBlueprint(
+      "ops-radar",
+      makeBrief("operational", "quietSignal")
+    );
+    const commandPage = createDashboardPageFromBlueprint(
+      "ops-radar",
+      makeBrief("operational", "commandCenter")
+    );
+
+    expect(quietPage.sections[0]?.variant).toBe("minimal");
+    expect(commandPage.sections[0]?.variant).toBe("cards");
+    expect(quietPage.sections[2]?.variant).toBe("simple");
+    expect(commandPage.sections[2]?.variant).toBe("detailed");
   });
 });

@@ -49,7 +49,25 @@ function compareCandidates(
     return left.report.summary.severityCounts.high - right.report.summary.severityCounts.high;
   }
 
+  const leftArtDirectionMatch = blueprintMatchesArtDirection(left.blueprint, left.brief);
+  const rightArtDirectionMatch = blueprintMatchesArtDirection(right.blueprint, right.brief);
+
+  if (leftArtDirectionMatch !== rightArtDirectionMatch) {
+    return leftArtDirectionMatch ? -1 : 1;
+  }
+
   return left.blueprint.id.localeCompare(right.blueprint.id);
+}
+
+function blueprintMatchesArtDirection(
+  blueprint: ScreenBlueprint,
+  brief: ScreenBrief
+): boolean {
+  return (
+    blueprint.screenType === "dashboard" &&
+    brief.screenType === "dashboard" &&
+    blueprint.artDirectionProfiles.includes(brief.artDirection)
+  );
 }
 
 function prioritizeBlueprint(
@@ -62,6 +80,13 @@ function prioritizeBlueprint(
 
   if (leftMatches !== rightMatches) {
     return leftMatches ? -1 : 1;
+  }
+
+  const leftArtDirectionMatch = blueprintMatchesArtDirection(left, brief);
+  const rightArtDirectionMatch = blueprintMatchesArtDirection(right, brief);
+
+  if (leftArtDirectionMatch !== rightArtDirectionMatch) {
+    return leftArtDirectionMatch ? -1 : 1;
   }
 
   return left.id.localeCompare(right.id);

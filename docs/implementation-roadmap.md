@@ -231,6 +231,26 @@ Do not add a second screen type until:
    - Demoted engine-facing explanation such as top-score versus export-ready reference and blueprint-baseline comparison into a collapsible details block, keeping the primary workflow focused on choosing, fixing, or exporting a version.
    - Rewrote candidate and recommendation copy to use task-oriented language like approved version, ready now, open to fix, and use this version.
    - Added tests covering the new recommendation/standing wording and the rendered candidate panel copy.
+27. Add adapter-target-aware export handoff in the playground. Completed on 2026-03-07.
+   - Extended the workbench document in `apps/playground` so save/open now persists the selected adapter target alongside the active brief and blueprint provenance.
+   - Updated the project toolbar to make the export target explicit, including target selection and clearer save-versus-export copy in the same surface.
+   - Split workbench save from export so save still writes the editable bundle while export now writes canonical project files plus a deterministic target-specific layout spec artifact.
+   - Added tests covering adapter-target persistence, fingerprint tracking, export artifact generation, and toolbar rendering for the selected target.
+28. Add dashboard art-direction profiles to the workbench. Completed on 2026-03-07.
+   - Extended the shared dashboard brief model and `brief.json` persistence so dashboard workbench state now carries an explicit art-direction profile, with backward-compatible defaulting for older saved dashboard briefs.
+   - Added 3 named dashboard art-direction profiles in `apps/playground` and wired them through starter project creation, blueprint application, and candidate generation so the same dashboard brief can now produce visibly different but deterministic directions.
+   - Tagged dashboard blueprints with compatible art-direction profiles and added profile-aware section variants so dashboard structure now shifts along with the visual token baseline.
+   - Added tests covering dashboard brief round-tripping, backward compatibility for missing art-direction state, dashboard blueprint profile variation, and profile-driven candidate divergence.
+29. Add a dashboard reference canon and visual-fit summaries. Completed on 2026-03-07.
+   - Added a dashboard-only reference pack in `apps/playground` so each art-direction profile now carries two pinned visual studies with explicit cue lists instead of relying on the profile name alone.
+   - Added pure visual-compare logic that scores generated dashboard candidates against the active reference canon using token posture, section variants, and blueprint compatibility to produce strong, mixed, or drifting fit summaries.
+   - Updated the generated-candidate panel to show the active dashboard reference canon and a per-candidate `reference fit` block so visual posture is visible alongside critic score and export readiness.
+   - Added tests covering reference-pack lookup, strong-versus-drifting visual compare summaries, and dashboard candidate panel rendering for the new reference canon UI.
+30. Add live visual review cards and restore playground production builds. Completed on 2026-03-07.
+   - Updated `apps/playground` so dashboard candidate cards now render compact live previews directly in the candidate panel, turning the reference-fit workflow into an actual visual review surface instead of a text-only checklist.
+   - Kept the new previews scoped to dashboard work so the art-direction loop stays focused on the first visual lane.
+   - Hardened `apps/playground/vite.config.ts` with workspace package aliases so the playground resolves local `@bux/*` packages in production builds instead of failing on workspace imports.
+   - Added rendering assertions for the new live preview surface and verified the playground with `bun run --cwd ./apps/playground build` in addition to the standard repo checks.
 
 ## Working Method
 
