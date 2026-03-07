@@ -16,18 +16,24 @@
       "dependencies": {
         "@bux/adapters-next": "workspace:*",
         "@bux/adapters-webstir": "workspace:*",
+        "@bux/blueprint-library": "workspace:*",
         "@bux/core-engine": "workspace:*",
         "@bux/core-model": "workspace:*",
+        "@bux/direction-engine": "workspace:*",
         "@bux/exporter": "workspace:*",
       },
     },
     "apps/playground": {
       "name": "@bux/playground",
       "dependencies": {
+        "@bux/adapter-contract": "workspace:*",
+        "@bux/adapters-next": "workspace:*",
+        "@bux/adapters-webstir": "workspace:*",
         "@bux/blueprint-library": "workspace:*",
         "@bux/core-engine": "workspace:*",
         "@bux/core-model": "workspace:*",
         "@bux/critic-rules": "workspace:*",
+        "@bux/direction-engine": "workspace:*",
         "@bux/preview-runtime": "workspace:*",
         "@bux/section-kit": "workspace:*",
         "react": "^19.1.1",
@@ -88,6 +94,16 @@
       "dependencies": {
         "@bux/core-model": "workspace:*",
         "@bux/critic-core": "workspace:*",
+      },
+    },
+    "packages/direction-engine": {
+      "name": "@bux/direction-engine",
+      "dependencies": {
+        "@bux/blueprint-library": "workspace:*",
+        "@bux/core-engine": "workspace:*",
+        "@bux/core-model": "workspace:*",
+        "@bux/critic-rules": "workspace:*",
+        "@bux/exporter": "workspace:*",
       },
     },
     "packages/exporter": {
@@ -170,6 +186,8 @@
     "@bux/critic-core": ["@bux/critic-core@workspace:packages/critic-core"],
 
     "@bux/critic-rules": ["@bux/critic-rules@workspace:packages/critic-rules"],
+
+    "@bux/direction-engine": ["@bux/direction-engine@workspace:packages/direction-engine"],
 
     "@bux/exporter": ["@bux/exporter@workspace:packages/exporter"],
 
