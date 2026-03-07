@@ -3,7 +3,7 @@
 This document defines the contract for `apps/mcp-server` before implementation.
 
 ## Scope
-- Wrap existing package logic from `@bux/core-engine`, `@bux/exporter`, and adapters.
+- Wrap existing package logic from `@bux/core-engine`, `@bux/direction-engine`, `@bux/exporter`, and adapters.
 - Do not duplicate core mutation, validation, or export logic in the server.
 - Keep all responses deterministic for identical input.
 
@@ -164,6 +164,24 @@ Output:
 
 Behavior:
 - Runs adapter `validate` before emitting layout spec.
+
+### `direction.generate`
+Input:
+- `brief: { screenType: "dashboard"; title: string; density: "executive" | "operational" | "focused"; artDirection: "quietSignal" | "commandCenter" | "editorialPulse"; schemaVersion?: string }`
+- `project?: Project`
+- `maxCandidates?: number` (default `4`)
+
+Output:
+- `brief: object`
+- `referencePack: { profile: string; profileLabel: string; title: string; summary: string; references: Array<{ id: string; label: string; summary: string; signals: string[] }> }`
+- `candidates: Array<{ rank: number; blueprint: { id: string; screenType: string; name: string; description: string; hierarchyIntent: string; densityEnvelope: string[]; ctaStrategy: string; allowedVariants: string[]; antiPatternNotes: string[]; artDirectionProfiles?: string[] }; project: Project; report: CriticReport; exportReadiness: object; visualCompare: object | null }>`
+
+Behavior:
+- Dashboard-only in v1.
+- Uses `@bux/direction-engine` to generate ranked candidates from the supplied brief.
+- Falls back to the canonical project fixture when `project` is omitted.
+- Returns JSON-safe blueprint metadata only; internal blueprint functions are not exposed through MCP.
+- Includes the active dashboard reference pack and a per-candidate visual-fit summary alongside critic/export status.
 
 ## Error Model
 - Structured error shape:

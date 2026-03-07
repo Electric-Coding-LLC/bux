@@ -251,6 +251,11 @@ Do not add a second screen type until:
    - Kept the new previews scoped to dashboard work so the art-direction loop stays focused on the first visual lane.
    - Hardened `apps/playground/vite.config.ts` with workspace package aliases so the playground resolves local `@bux/*` packages in production builds instead of failing on workspace imports.
    - Added rendering assertions for the new live preview surface and verified the playground with `bun run --cwd ./apps/playground build` in addition to the standard repo checks.
+31. Expose dashboard direction generation through MCP. Completed on 2026-03-07.
+   - Extracted the pure dashboard art-direction, candidate generation, export-readiness, and visual-fit logic into a new shared `@bux/direction-engine` package so both the playground and MCP server consume the same deterministic code path.
+   - Rewired `apps/playground` to consume the shared direction engine through its existing local module surface, keeping the UI workflow stable while removing the duplicated generation logic from the app layer.
+   - Added a new `direction.generate` tool in `apps/mcp-server` that accepts a dashboard brief, returns ranked JSON-safe blueprint metadata plus candidate projects, critic reports, export readiness, and dashboard reference-fit summaries, and defaults to the canonical project fixture when no base project is supplied.
+   - Added package tests for deterministic dashboard generation and reference-fit behavior, MCP tool tests for `direction.generate`, and updated the MCP contract documentation for the new tool.
 
 ## Working Method
 
